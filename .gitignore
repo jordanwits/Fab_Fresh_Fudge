@@ -1,0 +1,18 @@
+node_modules/
+dist/
+
+# uncompressed camera masters — kept locally, never shipped or versioned (51 MB)
+originals/
+
+# stale pre-compression snapshot from 2026-08-10
+.backup-*/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+
+# Claude Code tooling bundle, not site source
+.claude/skills/
+
+# stray backup of a tracked file
+*.bak
