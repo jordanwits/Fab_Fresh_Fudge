@@ -17,10 +17,6 @@ export default function Hero() {
 
       <div className="hero-inner">
         <div className="hero-copy">
-          <p className="hero-stamp hero-rise" style={{ '--d': '40ms' }}>
-            Hand-stirred · Small batch · Shipped fresh
-          </p>
-
           <h1 className="hero-rise" style={{ '--d': '120ms' }}>
             Real fudge, shipped straight to your&nbsp;door.
           </h1>

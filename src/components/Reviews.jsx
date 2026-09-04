@@ -22,16 +22,13 @@ export default function Reviews() {
           <blockquote>
             <p>“{featured.quote}”</p>
           </blockquote>
-          <cite>
-            {featured.name} <span>· {featured.context}</span>
-          </cite>
         </div>
 
         <div className="reviews-grid">
           {rest.map((r, i) => (
             <figure
               className="review-card"
-              key={r.name}
+              key={i}
               data-reveal
               style={{ '--stagger': `${i * 70}ms` }}
             >
@@ -39,9 +36,6 @@ export default function Reviews() {
               <blockquote>
                 <p>“{r.quote}”</p>
               </blockquote>
-              <figcaption>
-                {r.name} <span>· {r.context}</span>
-              </figcaption>
             </figure>
           ))}
         </div>

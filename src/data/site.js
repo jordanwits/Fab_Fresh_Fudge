@@ -1,34 +1,27 @@
-// Reviews, events, and specials are drafted placeholders for the client to
-// swap with their real quotes, show schedule, and current promotion.
+// Events and specials are drafted placeholders for the client to swap with
+// their real show schedule and current promotion. The reviews are real quotes
+// the client supplied; they came without names or order details, so the cards
+// carry the quote alone.
 
 export const REVIEWS = [
   {
     quote:
-      "I bought one square at the fair 'just to try it' and drove forty minutes back the next day for a whole box. The peanut butter chocolate is unreal.",
-    name: 'Melissa R.',
-    context: 'Found us at the county fair',
+      'Very nice fresh fudge. I love going to the trade show, everyone is ' +
+      'always so very helpful.',
     stars: 5,
     featured: true,
   },
   {
     quote:
-      'Ordered the six-pack as a thank-you gift. They opened it at the office and it did not survive the hour.',
-    name: 'Dan K.',
-    context: 'Six-pack box, shipped',
+      "Fudge is delish! It's one of the stops my granddaughter and I always make.",
     stars: 5,
   },
   {
-    quote:
-      "Smooth, creamy, never grainy. You can tell it's stirred by hand: this is what fudge tasted like when I was a kid.",
-    name: 'Patricia L.',
-    context: 'Salted Caramel devotee',
+    quote: 'Terrific fudge. My whole group bought one square each!!!',
     stars: 5,
   },
   {
-    quote:
-      'The dark chocolate raspberry is dangerous. I hid it from my own family and I am not sorry.',
-    name: 'Jen & Marcus T.',
-    context: 'Repeat (and repeat) customers',
+    quote: 'Great service and great fudge. Thank you.',
     stars: 5,
   },
 ]
