@@ -11,7 +11,8 @@ in both; this repo keeps the original "corner fudge shop" design.
 
 ## Commands
 
-- `npm run dev` — Vite dev server (port = `PORT` env or 5173; `.claude/launch.json` config: `fudge-dev`)
+- `npm run dev` — Vite dev server (port = `PORT` env or 5173; `.claude/launch.json` config: `fudge-dev`).
+  Public site at `/`, staff dashboard at `/admin/`.
 - `npm run build` — production build to `dist/`
 - `npm run preview` — serve the production build
 
@@ -24,7 +25,26 @@ in both; this repo keeps the original "corner fudge shop" design.
 - `src/data/flavors.js` — 20-flavor catalog (real names/descriptions harvested from the client's
   Square store) + `SQUARE_PRICE` / `BOX_PRICE` / `BOX_SIZE`
 - `src/data/site.js` — reviews, events, specials, corporate tiers, contact (all drafted placeholders)
-- `src/styles.css` — ALL styling and the design tokens in this one file (no CSS Modules)
+- `src/styles.css` — ALL styling and the design tokens for the PUBLIC SITE in this one file
+  (no CSS Modules). The admin has its own stylesheet; see below.
+- `admin/index.html` + `src/admin/` — the staff dashboard, a second Vite entry (added
+  2026-09-04). Vite serves it at `/admin/` in dev and builds it to `dist/admin/index.html`,
+  so the URL is a real file on any static host — no SPA rewrite rule needed — and the
+  marketing bundle never ships admin code. Inside `/admin/`, sections ride on the hash
+  (`/admin/#/events`) for the same reason. Structure:
+  - `backend/adapter.js` — THE SEAM. Every screen talks to `backend` and nothing else;
+    swapping in Firebase or Supabase means writing one sibling file and changing one
+    import. The contract and sketches for both providers are documented in that file.
+  - `backend/localAdapter.js` — the current implementation: localStorage, seeded from
+    `src/data/`, with deliberate latency so loading/error states are real code paths
+  - `state/` — AuthContext (session gate), DataContext (all CRUD), ToastContext
+  - `ui/` — the shared vocabulary: Button, Field, Dialog (native `<dialog>`), Drawer,
+    ConfirmDialog, Toaster, Icon (one hand-rolled SVG set), States (empty/error/skeleton)
+  - `lib/` — `useDragSort` (reorder-by-drag, no library), `eventDate`, `slug`, `image`,
+    `router`, `useClosing`
+  - `screens/` — Login, Shell, FlavorsScreen + FlavorEditor, EventsScreen + EventEditor,
+    ImageField
+  - `admin.css` — ALL admin styling and its own token set (prefixed `--a-*`)
 - `public/images/` — self-hosted photos: `flavors/` (19 original jpegs) plus
   `flavors/FlavorImages/` (client's 2026-08-10 reshoot — 10 flavors now point here), hero/story/
   corporate shots, client logo in `Logos/Fab Fresh Color.png`
@@ -69,4 +89,74 @@ Not determinable from the repo (no deploy config; README covers only local dev/b
   placeholders awaiting client confirmation.
 - Not a git repo and no `.gitignore` (add one before `git init` — `node_modules/`, `dist/`, and the
   51 MB `originals/` tree are all present and none belong in version control as-is).
-- `dist/` is a fresh 2026-08-10 build (6.7 MB, mostly images).
+- `dist/` is a fresh 2026-09-04 build; both entries (`dist/index.html` and
+  `dist/admin/index.html`) come out of one `npm run build`.
+
+### Admin dashboard gotchas
+
+- The dashboard is UI-only. `localAdapter` sign-in compares strings in the browser, so it
+  is a stub, NOT security — anyone can read the credentials in the bundle or edit
+  localStorage directly. Real access control has to be enforced server-side (Supabase RLS
+  or Firebase security rules) before `/admin/` is exposed to the internet.
+- Demo sign-in: `owner@fabfreshfudge.com` / `fudge2026`, shown on the login screen behind
+  `backend.isMock` so it disappears the moment a real adapter is wired in.
+- Edits persist in localStorage under `fff-admin/v1` and reach nothing else. The public
+  site still reads its static `src/data/` modules — connecting the two is the backend job.
+- A flavor's `id` is write-once: generated from the name on create, locked afterwards.
+  It is surfaced as "Reference ID", NOT as a web address — the site is one page with
+  anchor nav, so no per-flavor URL exists and calling it one misleads.
+  Build-a-Box stores ids in customer state and photo filenames follow them, so renaming
+  one would empty boxes. The display name stays freely editable.
+- Events are edited as real ISO dates (`startDate`/`endDate`); the site's `month`/`day`
+  chip strings are DERIVED on save by `lib/eventDate.js`, so records stay drop-in
+  compatible with `src/components/Events.jsx`. `parseISO` splits the string by hand
+  rather than using `new Date('YYYY-MM-DD')`, which parses as UTC and lands a day early
+  in California.
+- The four seeded events carry no year in `site.js` and the site calls them "upcoming",
+  so `localAdapter` seeds them into 2027. Nothing lands in the Past group until the
+  client enters their real schedule.
+- Flavor order is changed by dragging a row's grip handle (`lib/useDragSort.js`),
+  hand-rolled on pointer events rather than pulling in dnd-kit for one list. Drag is
+  unreachable by keyboard, so the same handle doubles as a keyboard control: space to
+  pick up, arrows to move, space to drop, escape to cancel, every step announced through
+  a live region. Reordering is disabled unless the table is unfiltered and in "Site
+  order", because an index in a filtered slice is not a catalog index. There is no
+  visible how-to under the table; the handles carry an off-screen `#dragsort-help`
+  description instead, since a grip icon tells a keyboard user nothing about space.
+- "Site order" shows `stockFirst(flavors)` — the exact list `Shop.jsx` renders, in-stock
+  group then sold-out group, with a heading over each. Dragging is penned inside a group
+  (`bounds` in `useDragSort`) because the site re-sorts across that line anyway, so
+  letting a row cross it would promise an order the site cannot produce. This made the
+  old "In stock first" sort option a duplicate of "Site order"; it was removed.
+- `reorderFlavors` maps that grouped display order back onto the catalog WITHOUT
+  flattening it: it walks the stored array and refills each in-stock slot from the new
+  in-stock sequence and each sold-out slot from the new sold-out sequence, leaving the
+  interleaving intact. That interleaving is what returns a flavor to its old
+  neighbourhood when it comes back in stock — normalise the catalog into two blocks and
+  every returning flavor reappears at the end of the in-stock run instead.
+- Below 700px the flavors table stops being a table: `thead` is dropped, each row becomes
+  its own card (`tr:not(.group-row)` — grid, border, radius, shadow, gap) and the
+  `.table-wrap` container goes transparent, so the phone shows a stack of cards rather
+  than one tall card full of hairline-separated rows. The stock-group headings become
+  plain labels on the canvas between the stacks. Left as a scrolling table, the stock
+  toggle and the edit/delete buttons sat off the right edge — which is what the client
+  came to a phone to do.
+- On phones reordering is a MODE, not an always-live affordance: a "Reorder" button above
+  the list toggles `.table-wrap.is-reordering`, which is what reveals the handles. A grip
+  that is always live on a list you scroll with your thumb collects grabs you didn't
+  mean. Entering the mode also drops the stock toggle and the row actions, which removes
+  the mis-tap targets a drag crosses and roughly halves the card (about 160px to 74px),
+  so far more of the list is reachable without scrolling mid-drag; the flavor name goes
+  `pointer-events: none` for the same reason. `useEffect` clears the mode whenever
+  `canReorder` goes false, so filtering can't strand a "Done" button over a list that no
+  longer drags. Desktop ignores all of it and shows the handles permanently — every
+  `.is-reordering` rule lives inside the 700px media query.
+- The handle is 40x48 in that mode, and `touch-action: none` is scoped to the handle
+  alone, so a drag starting on it moves the row while every other part of the card still
+  scrolls the page.
+- Overlay scroll-lock is reference-counted in `ui/Dialog.jsx`. It has to be: the delete
+  confirm opens on top of the editor drawer, and per-instance save/restore stranded
+  `<html>` at `overflow: hidden` with no dialog open, depending on teardown order.
+- Uploaded photos are downscaled to 1000px in-browser and stored as base64 data URLs,
+  purely to survive the ~5 MB localStorage budget. A real adapter uploads the original
+  File to storage and `lib/image.js` goes away.

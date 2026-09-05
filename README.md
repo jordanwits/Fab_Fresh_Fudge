@@ -11,6 +11,32 @@ npm run dev      # local dev server
 npm run build    # production build → dist/
 ```
 
+Two pages come out of one build:
+
+| URL | What it is |
+|---|---|
+| `/` | the public landing page |
+| `/admin/` | staff dashboard for editing flavors and the show schedule |
+
+## Admin dashboard
+
+`/admin/` lets the client add, edit, delete and reorder flavors, mark them sold out, and
+manage the show schedule — without a developer.
+
+It is **UI only**. No backend is connected yet, so it runs against a mock adapter that
+saves to browser localStorage and seeds itself from `src/data/`. Sign in with
+`owner@fabfreshfudge.com` / `fudge2026`.
+
+**That sign-in is not security.** It compares strings in the browser. Before `/admin/`
+goes anywhere public, wire up a real backend and enforce access server-side:
+
+1. Write one file next to `src/admin/backend/adapter.js` implementing the contract
+   documented at the top of it (Supabase and Firebase sketches are both in there).
+2. Change the single import at the bottom of `adapter.js`.
+3. Lock writes down with Supabase RLS or Firebase security rules.
+
+No screen touches the backend directly, so nothing else has to change.
+
 ## What's real vs. placeholder
 
 **Real (pulled from the client's live Square store):**

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /**
  * Dev-only endpoint backing src/FocalTool.jsx — remove alongside it.
@@ -81,5 +82,18 @@ export default defineConfig({
   plugins: [react(), focalBake()],
   server: {
     port: Number(process.env.PORT) || 5173,
+  },
+  build: {
+    rollupOptions: {
+      // Two entry points. The public landing page is index.html; the staff
+      // dashboard is admin/index.html, which Vite serves at /admin/ in dev and
+      // builds to dist/admin/index.html. Keeping them separate means the
+      // marketing bundle never ships a byte of admin code, and /admin/ resolves
+      // to a real file on any static host -- no SPA rewrite rule required.
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        admin: fileURLToPath(new URL('./admin/index.html', import.meta.url)),
+      },
+    },
   },
 })
