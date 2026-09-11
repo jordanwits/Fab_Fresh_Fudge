@@ -12,7 +12,7 @@
  */
 
 import { FLAVORS } from '../../data/flavors.js'
-import { EVENTS } from '../../data/site.js'
+import { EVENTS, CORPORATE_TIERS } from '../../data/site.js'
 import { AuthError, DataError } from './errors.js'
 import { randomId } from '../lib/slug.js'
 import { toDateChip, byDate } from '../lib/eventDate.js'
@@ -104,6 +104,7 @@ function seed() {
       soldOut: false,
       ...clone(f),
     })),
+    packages: CORPORATE_TIERS.map((t) => ({ id: randomId('pkg'), ...clone(t) })),
     events: EVENTS.map((e, i) => {
       const dates = EVENT_SEED_DATES[i] || { startDate: '', endDate: '' }
       return {
@@ -132,6 +133,19 @@ function load() {
       // the whole dashboard on boot.
       if (Array.isArray(parsed?.flavors) && Array.isArray(parsed?.events)) {
         store = parsed
+        // A blob written before a collection existed is valid, just short one
+        // key. Backfill from the seed rather than discarding the client's real
+        // edits -- or worse, handing a screen an undefined array to push onto.
+        const missing = ['flavors', 'events', 'packages'].filter(
+          (key) => !Array.isArray(store[key])
+        )
+        if (missing.length) {
+          const fresh = seed()
+          missing.forEach((key) => {
+            store[key] = fresh[key]
+          })
+          save()
+        }
         return store
       }
     }
@@ -274,6 +288,55 @@ export const localAdapter = {
       const db = load()
       db.events = db.events.filter((e) => e.id !== id)
       save()
+    },
+  },
+
+  /**
+   * Corporate gift tiers. Plain records with no derived fields and no id the
+   * public site keys off -- the site renders them in array order, so order is
+   * the only thing here that carries meaning beyond the text itself.
+   */
+  packages: {
+    async list() {
+      await read()
+      return clone(load().packages)
+    },
+
+    async create(draft) {
+      await write()
+      const db = load()
+      const record = { ...clone(draft), id: randomId('pkg') }
+      db.packages.push(record)
+      save()
+      return clone(record)
+    },
+
+    async update(id, patch) {
+      await write()
+      const db = load()
+      const index = db.packages.findIndex((p) => p.id === id)
+      if (index === -1) throw new DataError('That package no longer exists.')
+      db.packages[index] = { ...db.packages[index], ...clone(patch), id }
+      save()
+      return clone(db.packages[index])
+    },
+
+    async remove(id) {
+      await write()
+      const db = load()
+      db.packages = db.packages.filter((p) => p.id !== id)
+      save()
+    },
+
+    async reorder(orderedIds) {
+      await delay(120)
+      const db = load()
+      const byId = new Map(db.packages.map((p) => [p.id, p]))
+      const next = orderedIds.map((id) => byId.get(id)).filter(Boolean)
+      const seen = new Set(next.map((p) => p.id))
+      db.packages = [...next, ...db.packages.filter((p) => !seen.has(p.id))]
+      save()
+      return clone(db.packages)
     },
   },
 

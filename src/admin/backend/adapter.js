@@ -36,6 +36,13 @@
  *   update(id, patch)    -> Promise<ShowEvent>
  *   remove(id)           -> Promise<void>
  *
+ * backend.packages
+ *   list()               -> Promise<CorporatePackage[]>  in display order
+ *   create(draft)        -> Promise<CorporatePackage>
+ *   update(id, patch)    -> Promise<CorporatePackage>
+ *   remove(id)           -> Promise<void>
+ *   reorder(orderedIds)  -> Promise<CorporatePackage[]>
+ *
  * backend.media
  *   upload(file)         -> Promise<{ url }>    url is whatever <img src> needs
  *   library()            -> Promise<string[]>   already-available image paths
@@ -58,6 +65,15 @@
  *           DERIVED on write (see lib/eventDate.js) so the record stays
  *           drop-in compatible with the shape src/components/Events.jsx renders.
  *
+ * CorporatePackage
+ *           { id, name, size, blurb, price }
+ *           The corporate gift tiers, exactly the shape
+ *           src/components/Corporate.jsx renders, plus an id the site ignores.
+ *           `price` and `size` are free text ("from $42", "6 squares · 1.5 lbs")
+ *           rather than numbers: they are printed verbatim and the client
+ *           quotes real jobs by email anyway. Array order is the price ladder
+ *           the section reads down, so it is stored, not sorted.
+ *
  * ---------------------------------------------------------------------------
  * AuthError
  * ---------------------------------------------------------------------------
@@ -78,6 +94,7 @@
  *   auth.signIn  -> db.auth.signInWithPassword({ email, password })
  *   auth.getSession -> db.auth.getSession()
  *   flavors.list -> db.from('flavors').select('*').order('sort_order')
+ *   packages.list -> db.from('corporate_packages').select('*').order('sort_order')
  *   flavors.create -> db.from('flavors').insert(draft).select().single()
  *   media.upload -> db.storage.from('flavors').upload(path, file)
  *                   then db.storage.from('flavors').getPublicUrl(path)

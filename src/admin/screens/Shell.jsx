@@ -23,6 +23,7 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx'
 const NAV = [
   { route: 'flavors', label: 'Flavors', icon: 'image', blurb: 'The flavor case' },
   { route: 'events', label: 'Shows', icon: 'calendar', blurb: 'Upcoming schedule' },
+  { route: 'packages', label: 'Corporate Gifts', icon: 'gift', blurb: 'Gift packages' },
 ]
 
 function NavList({ route, counts, onNavigate }) {
@@ -128,14 +129,18 @@ function RailBody({ route, counts, onNavigate, onSignOut, onReset, user, resetti
 
 export default function Shell({ route, children }) {
   const { user, signOut } = useAuth()
-  const { flavors, events, resetSampleData } = useData()
+  const { flavors, events, packages, resetSampleData } = useData()
   const toast = useToast()
 
   const [navOpen, setNavOpen] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
   const [resetting, setResetting] = useState(false)
 
-  const counts = { flavors: flavors.length, events: events.length }
+  const counts = {
+    flavors: flavors.length,
+    events: events.length,
+    packages: packages.length,
+  }
   const current = NAV.find((n) => n.route === route) || NAV[0]
 
   // Keep the document title in step with the section, so browser history and

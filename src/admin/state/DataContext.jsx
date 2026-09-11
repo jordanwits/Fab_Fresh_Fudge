@@ -21,6 +21,7 @@ export function DataProvider({ children }) {
 
   const [flavors, setFlavors] = useState([])
   const [events, setEvents] = useState([])
+  const [packages, setPackages] = useState([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
 
@@ -28,12 +29,14 @@ export function DataProvider({ children }) {
     setLoading(true)
     setLoadError(null)
     try {
-      const [nextFlavors, nextEvents] = await Promise.all([
+      const [nextFlavors, nextEvents, nextPackages] = await Promise.all([
         backend.flavors.list(),
         backend.events.list(),
+        backend.packages.list(),
       ])
       setFlavors(nextFlavors)
       setEvents(nextEvents)
+      setPackages(nextPackages)
     } catch (err) {
       setLoadError(err?.message || "Couldn't load your content.")
     } finally {
@@ -167,18 +170,84 @@ export function DataProvider({ children }) {
     [toast]
   )
 
+  // --- corporate packages --------------------------------------------------
+
+  const createPackage = useCallback(
+    async (draft) => {
+      const saved = await backend.packages.create(draft)
+      setPackages((prev) => [...prev, saved])
+      toast.success('Package added', `${saved.name} is on the Corporate Gifts section.`)
+      return saved
+    },
+    [toast]
+  )
+
+  const updatePackage = useCallback(
+    async (id, patch) => {
+      const saved = await backend.packages.update(id, patch)
+      setPackages((prev) => prev.map((p) => (p.id === id ? saved : p)))
+      toast.success('Changes saved', `${saved.name} is up to date.`)
+      return saved
+    },
+    [toast]
+  )
+
+  const deletePackage = useCallback(
+    async (pkg) => {
+      await backend.packages.remove(pkg.id)
+      setPackages((prev) => prev.filter((p) => p.id !== pkg.id))
+      toast.success('Package deleted', `${pkg.name} was removed from the site.`)
+    },
+    [toast]
+  )
+
+  /**
+   * Store a new package order, given the order the list is showing.
+   *
+   * Much simpler than the flavor version, and deliberately so: there is no
+   * grouping to preserve here. The Corporate Gifts section prints these in
+   * array order, full stop, so what the client dragged IS the stored order --
+   * no walking the array refilling slots, no interleaving to protect.
+   *
+   * Optimistic, because waiting on the round trip would snap the row back to
+   * where it started and then jump it forward again.
+   */
+  const reorderPackages = useCallback(
+    async (orderedIds) => {
+      const byId = new Map(packages.map((p) => [p.id, p]))
+      const next = orderedIds.map((id) => byId.get(id)).filter(Boolean)
+      if (next.length !== packages.length) return
+      if (next.every((p, i) => p.id === packages[i].id)) return
+
+      const before = packages
+      setPackages(next)
+
+      try {
+        await backend.packages.reorder(next.map((p) => p.id))
+      } catch (err) {
+        setPackages(before)
+        toast.error("Couldn't save the new order", err?.message || 'Try again in a moment.')
+      }
+    },
+    [packages, toast]
+  )
+
   // --- dev -----------------------------------------------------------------
 
   const resetSampleData = useCallback(async () => {
     await backend.dev.reset()
     await refresh()
-    toast.success('Sample data restored', 'Every flavor and show is back to its starting state.')
+    toast.success(
+      'Sample data restored',
+      'Every flavor, show and gift package is back to its starting state.'
+    )
   }, [refresh, toast])
 
   const value = useMemo(
     () => ({
       flavors,
       events,
+      packages,
       loading,
       loadError,
       refresh,
@@ -190,11 +259,16 @@ export function DataProvider({ children }) {
       createEvent,
       updateEvent,
       deleteEvent,
+      createPackage,
+      updatePackage,
+      deletePackage,
+      reorderPackages,
       resetSampleData: backend.dev ? resetSampleData : null,
     }),
     [
       flavors,
       events,
+      packages,
       loading,
       loadError,
       refresh,
@@ -206,6 +280,10 @@ export function DataProvider({ children }) {
       createEvent,
       updateEvent,
       deleteEvent,
+      createPackage,
+      updatePackage,
+      deletePackage,
+      reorderPackages,
       resetSampleData,
     ]
   )

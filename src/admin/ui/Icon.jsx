@@ -16,6 +16,7 @@ const PATHS = {
   close: <path d="M6 6l12 12M18 6L6 18" />,
   check: <path d="m4.5 12.5 5 5 10-11" />,
   chevronDown: <path d="m6 9.5 6 6 6-6" />,
+  chevronUp: <path d="m6 14.5 6-6 6 6" />,
   chevronRight: <path d="m9.5 6 6 6-6 6" />,
   trash: (
     <>
@@ -68,6 +69,15 @@ const PATHS = {
     </g>
   ),
   pin: <><path d="M12 21v-6.5" /><path d="M8 3.5h8l-1 5.2 2.6 2.4a1 1 0 0 1-.7 1.7H7.1a1 1 0 0 1-.7-1.7L9 8.7Z" /></>,
+  gift: (
+    <>
+      <rect x="3.5" y="8.5" width="17" height="4" rx="1.25" />
+      <path d="M5 12.5v6.75a1.25 1.25 0 0 0 1.25 1.25h11.5A1.25 1.25 0 0 0 19 19.25V12.5" />
+      <path d="M12 8.5v12" />
+      <path d="M12 8.5H8.25a2.375 2.375 0 1 1 0-4.75C10.5 3.75 12 8.5 12 8.5Z" />
+      <path d="M12 8.5h3.75a2.375 2.375 0 1 0 0-4.75C13.5 3.75 12 8.5 12 8.5Z" />
+    </>
+  ),
 }
 
 export default function Icon({ name, size = 20, title, className = '', strokeWidth = 1.75 }) {

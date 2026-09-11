@@ -83,7 +83,7 @@ export default function Login() {
           />
 
           <h1 className="login__title">Sign in</h1>
-          <p className="login__sub">Manage the flavors and shows on fabfreshfudge.com.</p>
+          <p className="login__sub">Manage the flavors, shows and gift packages on fabfreshfudge.com.</p>
 
           <form className="login__form" onSubmit={handleSubmit} noValidate>
             {error ? (

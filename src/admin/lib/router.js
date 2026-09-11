@@ -13,7 +13,7 @@ import { useCallback, useSyncExternalStore } from 'react'
  * `navigate` here and nothing else.
  */
 
-export const ROUTES = ['flavors', 'events']
+export const ROUTES = ['flavors', 'events', 'packages']
 const DEFAULT_ROUTE = 'flavors'
 
 function readRoute() {

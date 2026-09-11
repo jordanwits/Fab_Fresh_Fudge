@@ -43,7 +43,7 @@ in both; this repo keeps the original "corner fudge shop" design.
   - `lib/` — `useDragSort` (reorder-by-drag, no library), `eventDate`, `slug`, `image`,
     `router`, `useClosing`
   - `screens/` — Login, Shell, FlavorsScreen + FlavorEditor, EventsScreen + EventEditor,
-    ImageField
+    PackagesScreen + PackageEditor, ImageField
   - `admin.css` — ALL admin styling and its own token set (prefixed `--a-*`)
 - `public/images/` — self-hosted photos: `flavors/` (19 original jpegs) plus
   `flavors/FlavorImages/` (client's 2026-08-10 reshoot — 10 flavors now point here), hero/story/
@@ -89,7 +89,7 @@ Not determinable from the repo (no deploy config; README covers only local dev/b
   placeholders awaiting client confirmation.
 - Not a git repo and no `.gitignore` (add one before `git init` — `node_modules/`, `dist/`, and the
   51 MB `originals/` tree are all present and none belong in version control as-is).
-- `dist/` is a fresh 2026-09-04 build; both entries (`dist/index.html` and
+- `dist/` is a fresh 2026-09-08 build; both entries (`dist/index.html` and
   `dist/admin/index.html`) come out of one `npm run build`.
 
 ### Admin dashboard gotchas
@@ -160,3 +160,25 @@ Not determinable from the repo (no deploy config; README covers only local dev/b
 - Uploaded photos are downscaled to 1000px in-browser and stored as base64 data URLs,
   purely to survive the ~5 MB localStorage budget. A real adapter uploads the original
   File to storage and `lib/image.js` goes away.
+- The Corporate Gifts screen (added 2026-09-08) edits `CORPORATE_TIERS` — the gift
+  package ladder in `src/components/Corporate.jsx`. Records are
+  `{ id, name, size, blurb, price }`; `size` and `price` stay FREE TEXT ("from $42")
+  because the site prints them verbatim and real corporate jobs are quoted by email.
+  Only the packages are editable — the section's heading, lede, footnote and photo are
+  still hard-coded in the component.
+- Packages reorder with the same `useDragSort` handle the flavors table uses, including
+  the phone-only "Reorder" mode and the keyboard fallback. What does NOT carry over is
+  grouping: `Corporate.jsx` prints the tiers in plain array order, so there is no
+  boundary for a drag to promise across and `bounds` is left unset. `reorderPackages` is
+  correspondingly plain — the dragged order IS the stored order, with none of the
+  slot-refilling `reorderFlavors` needs.
+- Shows are deliberately NOT drag-reorderable (asked and confirmed 2026-09-08). They have
+  no stored manual order at all: `events.list()` sorts by date on read and DataContext
+  re-sorts on create/update. Adding drag would mean introducing a manual order that
+  competes with the date sort — note that `src/components/Events.jsx` renders EVENTS in
+  ARRAY order, so the site's order and the admin's date order are not the same thing
+  today.
+- `localAdapter.load()` BACKFILLS a stored blob that predates a collection instead of
+  discarding it. The shape guard only checks `flavors`/`events`, so a browser holding a
+  pre-packages `fff-admin/v1` blob passes it and would then hand the screen an undefined
+  array. Any future collection has to be added to that backfill list too.

@@ -1797,7 +1797,171 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   color: var(--a-ink-2);
 }
 
-/* -------------------------------------------------------------- 9. dialogs */
+/* ------------------------------------------------- 9. corporate packages */
+
+.pkg-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+}
+
+.pkg-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: start;
+  gap: var(--s4);
+  padding: var(--s4);
+  border: 1px solid var(--a-line);
+  border-radius: var(--r-lg);
+  background: var(--a-surface);
+  box-shadow: var(--sh-1);
+  transition: border-color var(--fast) var(--ease), box-shadow var(--fast) var(--ease);
+}
+
+.pkg-item:hover {
+  border-color: var(--a-blue-line);
+  box-shadow: var(--sh-2);
+}
+
+/* The rank column is the whole reason this list reads as a ladder rather than
+   a set: the number says where the tier sits, and the grip that changes it sits
+   under the thing it changes. */
+.pkg-item__rank {
+  display: grid;
+  justify-items: center;
+  gap: var(--s2);
+}
+
+.pkg-item__num {
+  display: grid;
+  place-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--r-full);
+  background: var(--a-rail);
+  color: var(--a-rail-ink);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pkg-item__body {
+  min-width: 0;
+}
+
+/* Name and price share a baseline the way they do on the site, with the price
+   pushed right so a column of them stays scannable down the ladder. */
+.pkg-item__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.pkg-item__price {
+  flex: none;
+  font-size: var(--t-md);
+  font-weight: 700;
+  color: var(--a-blue-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.pkg-item__size {
+  margin-top: 2px;
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--a-ink-2);
+}
+
+/* Drag states, matching the flavor table's: displaced cards ease into their
+   new slot, the lifted one must not (it would lag the pointer -- see
+   useDragSort), and it needs `position: relative` for the z-index that lifts
+   it over its neighbours. */
+.pkg-item.is-shifted {
+  transition: transform var(--base) var(--ease);
+}
+
+.pkg-item.is-dragging {
+  position: relative;
+  z-index: 2;
+  border-color: var(--a-blue-line);
+  box-shadow: var(--sh-2);
+}
+
+.pkg-item.is-dragging .drag-handle {
+  cursor: grabbing;
+  background: var(--a-blue-pale);
+  color: var(--a-blue-ink);
+}
+
+/* The card's own hover lift would otherwise fire under every row the drag
+   passes over. */
+body.is-dragsorting .pkg-item:hover {
+  border-color: var(--a-line);
+  box-shadow: var(--sh-1);
+}
+
+body.is-dragsorting .pkg-item.is-dragging:hover {
+  border-color: var(--a-blue-line);
+  box-shadow: var(--sh-2);
+}
+
+.pkg-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  font-size: var(--t-sm);
+  color: var(--a-ink-2);
+}
+
+.pkg-foot .ic {
+  flex: none;
+  color: var(--a-ink-dim);
+}
+
+/* "On the site": every package field is printed verbatim, so the only check
+   available is seeing the row assembled. Same job the date preview does in the
+   show editor. */
+.tier-preview {
+  padding: var(--s3);
+  border: 1px solid var(--a-line);
+  border-radius: var(--r);
+  background: var(--a-surface-2);
+}
+
+.tier-preview__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+
+.tier-preview__head strong {
+  font-size: var(--t-md);
+  font-weight: 700;
+  letter-spacing: -0.008em;
+}
+
+.tier-preview__price {
+  flex: none;
+  font-weight: 700;
+  color: var(--a-blue-ink);
+}
+
+.tier-preview__size {
+  font-size: var(--t-sm);
+  font-weight: 600;
+  color: var(--a-ink-2);
+}
+
+.tier-preview__blurb {
+  margin-top: var(--s1);
+  font-size: var(--t-sm);
+  color: var(--a-ink-2);
+}
+
+/* -------------------------------------------------------------- 10. dialogs */
 
 .dlg {
   border: 0;
@@ -2017,7 +2181,7 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   margin-top: var(--s5);
 }
 
-/* ------------------------------------------------------- 10. image field */
+/* ------------------------------------------------------- 11. image field */
 
 .imagefield {
   display: flex;
@@ -2218,7 +2382,7 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   color: #fff;
 }
 
-/* ------------------------------------ 11. toasts, empty / loading / error */
+/* ------------------------------------ 12. toasts, empty / loading / error */
 
 .toaster {
   position: fixed;
@@ -2505,7 +2669,7 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   font-size: var(--t-sm) !important;
 }
 
-/* --------------------------------------------------------------- 12. login */
+/* --------------------------------------------------------------- 13. login */
 
 .login {
   display: grid;
@@ -2664,7 +2828,7 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   text-decoration: underline;
 }
 
-/* ---------------------------------------------------------- 13. responsive */
+/* ---------------------------------------------------------- 14. responsive */
 
 @media (min-width: 960px) {
   .login {
@@ -2736,6 +2900,13 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   .event-item__tag {
     grid-column: 2;
     justify-self: start;
+  }
+
+  /* Drops to two columns so the shared .row-actions rule below puts the edit
+     and delete buttons under the text, not squeezed against the right edge. */
+  .pkg-item {
+    grid-template-columns: auto 1fr;
+    row-gap: var(--s3);
   }
 
   .row-actions {
@@ -2917,6 +3088,35 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
     width: 64px;
     height: 48px;
   }
+
+  /* Packages get the same treatment as the flavor rows: no handle at all until
+     Reorder is on, then a thumb-sized one and nothing else in the card to
+     mis-tap on the way past. */
+  .pkg-list .drag-handle {
+    display: none;
+  }
+
+  .pkg-list.is-reordering .drag-handle {
+    display: grid;
+    width: 40px;
+    min-height: 48px;
+    border-radius: var(--r);
+    background: var(--a-surface-3);
+  }
+
+  .pkg-list.is-reordering .row-actions {
+    display: none;
+  }
+
+  /* The name is a button that opens the editor; in this mode it is only a
+     label, and tapping it while aiming for the grip would be a surprise. */
+  .pkg-list.is-reordering .row-title {
+    pointer-events: none;
+  }
+
+  .pkg-list.is-reordering .row-desc {
+    -webkit-line-clamp: 1;
+  }
 }
 
 @media (max-width: 640px) {
@@ -2957,7 +3157,7 @@ body.is-dragsorting .table tbody tr.is-dragging:hover {
   }
 }
 
-/* ------------------------------------------------------ 14. reduced motion */
+/* ------------------------------------------------------ 15. reduced motion */
 
 @media (prefers-reduced-motion: reduce) {
   *,

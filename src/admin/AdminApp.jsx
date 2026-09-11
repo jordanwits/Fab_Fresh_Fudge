@@ -7,6 +7,7 @@ import Login from './screens/Login.jsx'
 import Shell from './screens/Shell.jsx'
 import FlavorsScreen from './screens/FlavorsScreen.jsx'
 import EventsScreen from './screens/EventsScreen.jsx'
+import PackagesScreen from './screens/PackagesScreen.jsx'
 import Button from './ui/Button.jsx'
 import Icon from './ui/Icon.jsx'
 
@@ -67,6 +68,7 @@ function BootSplash() {
 const SCREENS = {
   flavors: FlavorsScreen,
   events: EventsScreen,
+  packages: PackagesScreen,
 }
 
 function Dashboard() {

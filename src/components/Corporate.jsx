@@ -19,13 +19,17 @@ export default function Corporate() {
 
           <ul className="tier-list">
             {CORPORATE_TIERS.map((t) => (
-              <li className="tier-row" key={t.name}>
+              // The admin can edit these now, so two tiers can share a name
+              // and the description is optional -- key off the record's id
+              // where there is one, and skip the blurb rather than printing an
+              // empty paragraph into the ladder.
+              <li className="tier-row" key={t.id || t.name}>
                 <div className="tier-head">
                   <h3>{t.name}</h3>
                   <span className="tier-price">{t.price}</span>
                 </div>
                 <p className="tier-size">{t.size}</p>
-                <p className="tier-blurb">{t.blurb}</p>
+                {t.blurb ? <p className="tier-blurb">{t.blurb}</p> : null}
               </li>
             ))}
           </ul>
