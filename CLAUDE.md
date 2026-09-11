@@ -87,8 +87,9 @@ Not determinable from the repo (no deploy config; README covers only local dev/b
 - "Add box to cart" is a front-end simulation; real checkout is the client's Square store.
 - Prices, reviews, events, specials, corporate tiers, Our Story copy, and contact details are
   placeholders awaiting client confirmation.
-- Not a git repo and no `.gitignore` (add one before `git init` — `node_modules/`, `dist/`, and the
-  51 MB `originals/` tree are all present and none belong in version control as-is).
+- Git repo on `main`, pushed to https://github.com/jordanwits/Fab_Fresh_Fudge — a PUBLIC repo, so
+  anything committed (including the admin demo credentials) is world-readable. `.gitignore` keeps
+  `node_modules/`, `dist/`, and the 51 MB `originals/` tree out of version control.
 - `dist/` is a fresh 2026-09-08 build; both entries (`dist/index.html` and
   `dist/admin/index.html`) come out of one `npm run build`.
 
