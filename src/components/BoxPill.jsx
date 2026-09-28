@@ -27,7 +27,7 @@ export default function BoxPill({ count, bump }) {
         ))}
       </span>
       <span className="box-pill-label">
-        {count === BOX_SIZE ? 'Box full, check out' : `${count}/${BOX_SIZE} in your box`}
+        {count === BOX_SIZE ? 'Box full, add it to your cart' : `${count}/${BOX_SIZE} in your box`}
       </span>
     </a>
   )

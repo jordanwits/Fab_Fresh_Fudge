@@ -1,8 +1,51 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+/**
+ * Dev-only stand-in for the Vercel function at api/checkout.js.
+ *
+ * Mounts the same host-agnostic handler (server/checkout.js) at /api/checkout,
+ * so `npm run dev` runs the real checkout flow against Square Sandbox without
+ * the Vercel CLI. It loads through Vite's SSR loader on every request, which
+ * means edits to prices or stock in src/data/ apply without a restart, and it
+ * re-reads .env.local each time for the same reason.
+ */
+function checkoutApiDev() {
+  return {
+    name: 'checkout-api-dev',
+    apply: 'serve',
+    configureServer(server) {
+      server.middlewares.use('/api/checkout', async (req, res) => {
+        try {
+          const { handleCheckout } = await server.ssrLoadModule('/server/checkout.js')
+          const env = loadEnv(server.config.mode, server.config.envDir, '')
+
+          const chunks = []
+          for await (const chunk of req) chunks.push(chunk)
+          const hasBody = req.method !== 'GET' && req.method !== 'HEAD'
+          const request = new Request(`http://${req.headers.host}${req.originalUrl}`, {
+            method: req.method,
+            headers: { 'content-type': req.headers['content-type'] || '' },
+            body: hasBody ? Buffer.concat(chunks) : undefined,
+          })
+
+          const response = await handleCheckout(request, env)
+          res.statusCode = response.status
+          response.headers.forEach((value, name) => res.setHeader(name, value))
+          res.end(await response.text())
+        } catch (err) {
+          server.config.logger.error(`[checkout-api-dev] ${err.stack || err}`)
+          res.statusCode = 500
+          res.setHeader('content-type', 'application/json')
+          res.end(JSON.stringify({ code: 'dev_error', message: String(err) }))
+        }
+      })
+    },
+  }
+}
 
 /**
  * Dev-only endpoint backing src/FocalTool.jsx — remove alongside it.
@@ -79,7 +122,7 @@ function focalBake() {
 }
 
 export default defineConfig({
-  plugins: [react(), focalBake()],
+  plugins: [react(), focalBake(), checkoutApiDev()],
   server: {
     port: Number(process.env.PORT) || 5173,
   },

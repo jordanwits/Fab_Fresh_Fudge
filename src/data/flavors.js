@@ -1,14 +1,15 @@
 // Flavor catalog — names, descriptions, and photos pulled from the client's
-// live Square store (fabfreshfudge.com) on 2026-06-10. Prices are placeholders
-// pending the client's current price list.
+// live Square store (fabfreshfudge.com) on 2026-06-10. Prices are the client's
+// own, confirmed 2026-09-28: $7 per approximately-quarter-pound square, and
+// buy five get the sixth free, which is what makes a six-pack box $35.
 //
 // Stock: `soldOut: true` marks a flavor as currently unavailable — it still
 // shows in the case and the picker, greyed out and unselectable. The in-stock
 // set is the client's 2026-08-10 list, the same ten flavors they reshot into
 // public/images/flavors/FlavorImages/. Flip the flag when stock changes.
 
-export const SQUARE_PRICE = 7.95
-export const BOX_PRICE = 42
+export const SQUARE_PRICE = 7
+export const BOX_PRICE = 35
 export const BOX_SIZE = 6
 
 export const CATEGORIES = [

@@ -1,6 +1,14 @@
 node_modules/
 dist/
 
+# Square access tokens live in these, and this repo is PUBLIC
+.env
+.env.*
+!.env.example
+
+# Vercel CLI project link
+.vercel/
+
 # uncompressed camera masters — kept locally, never shipped or versioned (51 MB)
 originals/
 

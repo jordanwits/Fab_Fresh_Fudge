@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { useReveal } from '../hooks/useReveal.js'
 import {
   BOX_PRICE,
@@ -8,12 +7,12 @@ import {
   flavorById,
   stockFirst,
 } from '../data/flavors.js'
+import { SHIPPING_SEASON_LABEL } from '../data/checkout.js'
 
 const PICKER_FLAVORS = stockFirst(FLAVORS)
 
-export default function BuildABox({ box, onAdd, onRemove, onClear }) {
+export default function BuildABox({ box, onAdd, onRemove, onClear, onAddToCart }) {
   const ref = useReveal()
-  const [confirmed, setConfirmed] = useState(false)
   const full = box.length >= BOX_SIZE
   const remaining = BOX_SIZE - box.length
   const savings = (SQUARE_PRICE * BOX_SIZE - BOX_PRICE).toFixed(2)
@@ -23,11 +22,6 @@ export default function BuildABox({ box, onAdd, onRemove, onClear }) {
     return acc
   }, {})
 
-  const handleCheckout = () => {
-    setConfirmed(true)
-    setTimeout(() => setConfirmed(false), 2600)
-  }
-
   return (
     <section className="build" id="build-a-box" ref={ref}>
       <div className="container build-grid">
@@ -35,8 +29,9 @@ export default function BuildABox({ box, onAdd, onRemove, onClear }) {
           <h2>Build a Box</h2>
           <p className="build-lede">
             Six thick-cut squares, any flavors you like, even six of the same
-            one. We cut them fresh, tuck them in parchment, and ship them in
-            our signature box.
+            one. Each square is approximately a quarter pound of fudge. We cut
+            them fresh, tuck them in parchment, and ship them in our signature
+            box.
           </p>
 
           <div className="build-box-visual" role="status" aria-live="polite">
@@ -106,20 +101,17 @@ export default function BuildABox({ box, onAdd, onRemove, onClear }) {
                 <button
                   className="btn btn-primary"
                   disabled={!full}
-                  onClick={handleCheckout}
+                  onClick={onAddToCart}
                 >
-                  {confirmed
-                    ? 'Added to cart ✓'
-                    : full
-                      ? 'Add box to cart'
-                      : `Pick ${remaining} more`}
+                  {full ? 'Add box to cart' : `Pick ${remaining} more`}
                 </button>
               </div>
             </div>
           </div>
           <p className="build-finePrint">
             Mint flavors are bold, so we ship them in their own box to keep
-            the others true. Checkout connects to the client’s Square store.
+            the others true. We ship {SHIPPING_SEASON_LABEL}, while the weather
+            is kind to fudge.
           </p>
         </div>
 

@@ -2,8 +2,9 @@
 
 Single-page React landing-site redesign of fabfreshfudge.com for Fab Fresh Fudge (site copy still says
 "Fabulous Fudge") — the Ragle family's small-batch fudge business near Mt. Shasta, Northern California.
-Built by West Wave Creative. Static Vite 5 + React 18, plain JSX (no TypeScript), no backend — checkout
-hands off to the client's existing Square Online store. No deploy target is recorded in this repo.
+Built by West Wave Creative. Static Vite 5 + React 18, plain JSX (no TypeScript), plus ONE serverless
+function (`api/checkout.js`) that turns the cart into a Square hosted-checkout payment link. Hosting is
+Vercel (decided 2026-09-16; not yet deployed).
 
 **This is the OLDER v1 iteration; `..\Fab Fresh Fudge 2` is the active/newer build** (Vite 6 + TS,
 rebuilt 2026-06-15 as a deliberately different "editorial counter" design). Same brand and flavor data
@@ -20,11 +21,23 @@ in both; this repo keeps the original "corner fudge shop" design.
 
 - `index.html` — Google Fonts (Young Serif display, Figtree body), meta
 - `src/App.jsx` — section order: Header → Hero → Shop → Specials → BuildABox → Story → Reviews →
-  Events → Corporate → Footer, plus a floating BoxPill; box state (six flavor ids) lives here
+  Events → Corporate → Footer, plus a floating BoxPill, the CartDrawer and the OrderPlaced dialog.
+  The in-progress box (six flavor ids) lives here; the cart lives in `useCart`
 - `src/components/*.jsx` — one component per section; `src/hooks/useReveal.js` = scroll-reveal
 - `src/data/flavors.js` — 20-flavor catalog (real names/descriptions harvested from the client's
   Square store) + `SQUARE_PRICE` / `BOX_PRICE` / `BOX_SIZE`
 - `src/data/site.js` — reviews, events, specials, corporate tiers, contact (all drafted placeholders)
+- Cart & checkout (added 2026-09-16; README "Cart & checkout" has the setup steps):
+  - `src/data/checkout.js` — `SHIPPING_FEE` (placeholder $12), Oct–Apr `SHIPPING_SEASON`,
+    `checkoutSeason()`, quantity limits
+  - `src/lib/cart.js` — pure cart rules (line keys, totals in cents, `parseLines`, `findProblems`).
+    Imported by BOTH the browser and the server, so displayed and charged totals can't drift
+  - `src/hooks/useCart.js` — cart state, persisted to localStorage `fff-cart/v1`, synced across tabs
+  - `src/components/CartDrawer.jsx`, `OrderPlaced.jsx`, `Overlay.jsx` (native `<dialog>` wrapper,
+    the public-site twin of the admin's `ui/Dialog.jsx`, kept separate so no admin code ships)
+  - `server/checkout.js` — host-agnostic Request→Response handler that calls Square
+    `CreatePaymentLink`; `api/checkout.js` is the thin Vercel wrapper; `vite.config.js`'s
+    `checkoutApiDev` plugin mounts the same handler at `/api/checkout` during `npm run dev`
 - `src/styles.css` — ALL styling and the design tokens for the PUBLIC SITE in this one file
   (no CSS Modules). The admin has its own stylesheet; see below.
 - `admin/index.html` + `src/admin/` — the staff dashboard, a second Vite entry (added
@@ -55,7 +68,11 @@ in both; this repo keeps the original "corner fudge shop" design.
 
 ## Deployment
 
-Not determinable from the repo (no deploy config; README covers only local dev/build).
+Vercel (chosen 2026-09-16, not yet set up). No `vercel.json` is needed: Vercel's Vite preset builds
+`dist/`, and `api/checkout.js` becomes the function. Environment variables (see `.env.example`):
+`SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_ENVIRONMENT` (`production`|`sandbox`, default
+sandbox), optional `VITE_CHECKOUT_SEASON` (`open`|`closed`). Production scope gets production Square
+values, Preview scope gets Sandbox values.
 
 ## Conventions / gotchas
 
@@ -84,15 +101,58 @@ Not determinable from the repo (no deploy config; README covers only local dev/b
   Side effect: the "Coffee & caramel" filter is currently 4-for-4 sold out.
 - The live client site is client-rendered Square Online — curl gets no page content; product data comes
   from `sitemap.xml` + per-product `og:` meta (how `research/` was collected).
-- "Add box to cart" is a front-end simulation; real checkout is the client's Square store.
-- Prices, reviews, events, specials, corporate tiers, Our Story copy, and contact details are
-  placeholders awaiting client confirmation.
+- Reviews, events, specials, corporate tiers, Our Story copy, and contact details are
+  placeholders awaiting client confirmation. PRICES ARE NOT: the client confirmed them 2026-09-28 —
+  $7 per approximately-quarter-pound square, buy five get the sixth free, so `BOX_PRICE` is $35 and
+  the box saves exactly one square. The Specials band still advertises a made-up "buy three get a
+  fourth free / FABFOUR" deal that now contradicts the real offer, and `CORPORATE_TIERS` still says
+  "from $42" for a six-pack; both need the client's real wording.
+- Shipping season is NOVEMBER 1 - April 30 (client, 2026-09-28; their Square store's own policy said
+  Oct-April). They CAN ship in summer but have to add ice packs and charge more, so May-Oct orders
+  are meant to go through a contact/quote form — that form is NOT built yet.
 - Git repo on `main`, pushed to https://github.com/jordanwits/Fab_Fresh_Fudge — a PUBLIC repo, so
   anything committed (including the admin demo credentials) is world-readable. `.gitignore` keeps
   `node_modules/`, `dist/`, and the 51 MB `originals/` tree out of version control.
-- `dist/` is a fresh 2026-09-08 build; both entries (`dist/index.html` and
+- `dist/` is a fresh 2026-09-16 build; both entries (`dist/index.html` and
   `dist/admin/index.html`) come out of one `npm run build`.
 
+### Checkout gotchas
+
+- The browser sends ONLY `{ type, flavorId | flavors, qty }` lines. `server/checkout.js` re-parses
+  them, re-checks stock/limits with `findProblems`, recomputes prices from `flavors.js` and the fee
+  from `checkout.js`, and enforces the season. Never accept a price from the request.
+- Line items are AD HOC (name + price), not Square catalog ids. So Square inventory is NOT
+  decremented and item reports group by name; prices and stock come from this repo. Squares are named
+  `1/4 lb square - <Flavor>` to match the client's existing Square items. A box is one
+  `Six-Pack Box` line with a $0 modifier per flavor named `3 x Classic Chocolate` (ASCII x on purpose:
+  receipt printers).
+- No sales tax is added anywhere. If the client needs tax, add it to the order in
+  `buildPaymentLinkRequest`, and the drawer's totals will need the same number.
+- The admin dashboard's stock/flavor edits still live in its localStorage only; checkout reads the
+  static `flavors.js` bundled at deploy time. Wiring the admin backend must also feed the server.
+- Season is decided on `America/Los_Angeles` time. The browser evaluates it at BUILD time for
+  `VITE_CHECKOUT_SEASON`, the function at request time, so changing that variable needs a redeploy.
+  In September you must set it to `open` to test checkout at all.
+- Square appends its own query params to the redirect, so App matches `?order=` by prefix
+  (`placed…`) and then strips the query with `history.replaceState`. Landing on `/?order=placed`
+  clears the cart by design.
+- Payment links are pinned to `Square-Version: 2026-08-19` (`SQUARE_VERSION` in `server/checkout.js`).
+- Verified end to end against Square SANDBOX on 2026-09-16: Square accepted the payment link
+  (including the $0 box modifiers), recorded the exact totals the drawer shows, no tax, a SHIPMENT
+  fulfillment, and after a simulated payment the order went OPEN, the receipt email was sent, and the
+  return to `/?order=placed` showed the thank-you and emptied the cart. In Sandbox, payment links open
+  Square's "Checkout API Sandbox Testing Panel" (a Test Payment button, no card form) rather than the
+  real checkout page. Production has NOT been exercised.
+- Square developer app: "Fab Fresh Fudge Website", created under the Fabulous Fudge account. That
+  account has THREE locations (Churn Creek, Fabulous Fudge, Redding Mall); the production location ID
+  for web orders is still undecided. Jordan's team-member login can see Sandbox but gets "You do not
+  have the permissions required" on Production, so the owner has to grant developer access or supply
+  the production values.
+- `Overlay.jsx` handles Escape on `keydown` as well as `cancel`, and resyncs on `close`: in the Claude
+  desktop app's embedded Chrome the `<dialog>` never fired `cancel` for a trusted Escape, and real
+  Chrome can skip `cancel` under its close-watcher abuse rule. Don't reduce it to `cancel` alone.
+- The header now holds wordmark + cart button + toggle. Below 420px the toggle's "Menu" word is
+  visually hidden; between 1021 and 1100px the nav/header gaps tighten, or the nav links wrap.
 ### Admin dashboard gotchas
 
 - The dashboard is UI-only. `localAdapter` sign-in compares strings in the browser, so it

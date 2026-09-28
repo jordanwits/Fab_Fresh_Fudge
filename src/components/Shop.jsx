@@ -1,19 +1,49 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReveal } from '../hooks/useReveal.js'
 import { CATEGORIES, FLAVORS, SQUARE_PRICE, stockFirst } from '../data/flavors.js'
 
 const INITIAL_COUNT = 8
 
-function FlavorCard({ flavor, onAdd, boxFull, index }) {
-  const [justAdded, setJustAdded] = useState(false)
+function Check() {
+  return (
+    <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
+      <path
+        d="m2.5 8.5 3.5 3.5 7.5-8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** True for a moment after `flash()`; the timer dies with the card. */
+function useFlash(ms = 1100) {
+  const [on, setOn] = useState(false)
+  const timer = useRef(null)
+  useEffect(() => () => clearTimeout(timer.current), [])
+  const flash = () => {
+    clearTimeout(timer.current)
+    setOn(true)
+    timer.current = setTimeout(() => setOn(false), ms)
+  }
+  return [on, flash]
+}
+
+function FlavorCard({ flavor, onAddToBox, onAddToCart, boxFull, index }) {
+  const [inCart, flashCart] = useFlash()
+  const [inBox, flashBox] = useFlash()
   const soldOut = Boolean(flavor.soldOut)
 
-  const handleAdd = () => {
-    onAdd(flavor.id)
-    if (!boxFull) {
-      setJustAdded(true)
-      setTimeout(() => setJustAdded(false), 1100)
-    }
+  const addToCart = () => {
+    if (onAddToCart(flavor.id)) flashCart()
+  }
+
+  const addToBox = () => {
+    onAddToBox(flavor.id)
+    if (!boxFull) flashBox()
   }
 
   return (
@@ -57,51 +87,55 @@ function FlavorCard({ flavor, onAdd, boxFull, index }) {
           <strong>${SQUARE_PRICE.toFixed(2)}</strong>
           <span>{soldOut ? 'back in the next batch' : '¼ lb square'}</span>
         </div>
-        {soldOut ? (
-          <span className="btn-add is-soldout" aria-hidden="true">
-            Sold out
-          </span>
-        ) : (
-          <button
-            className={`btn-add${justAdded ? ' is-added' : ''}`}
-            onClick={handleAdd}
-            disabled={boxFull && !justAdded}
-            aria-label={
-              boxFull
-                ? `Box is full, ${flavor.name} not added`
-                : `Add ${flavor.name} to your six-pack box`
-            }
-          >
-            {justAdded ? (
-              <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-                <path
-                  d="m2.5 8.5 3.5 3.5 7.5-8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            ) : (
-              <svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true">
-                <path
-                  d="M8 2.5v11M2.5 8h11"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            )}
-            <span>{justAdded ? 'In the box' : 'Add to box'}</span>
-          </button>
-        )}
+        <div className="flavor-actions">
+          {soldOut ? (
+            <span className="btn-add is-soldout" aria-hidden="true">
+              Sold out
+            </span>
+          ) : (
+            <>
+              <button
+                className={`btn-add${inCart ? ' is-added' : ''}`}
+                onClick={addToCart}
+                aria-label={`Add one ${flavor.name} square to your cart`}
+              >
+                {inCart ? (
+                  <>
+                    <Check />
+                    <span>Added</span>
+                  </>
+                ) : (
+                  'Add to cart'
+                )}
+              </button>
+              <button
+                className={`btn-add${inBox ? ' is-added' : ''}`}
+                onClick={addToBox}
+                disabled={boxFull && !inBox}
+                aria-label={
+                  boxFull
+                    ? `Box is full, ${flavor.name} not added`
+                    : `Add ${flavor.name} to your six-pack box`
+                }
+              >
+                {inBox ? (
+                  <>
+                    <Check />
+                    <span>In box</span>
+                  </>
+                ) : (
+                  'Add to box'
+                )}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </article>
   )
 }
 
-export default function Shop({ onAdd, boxFull }) {
+export default function Shop({ onAddToBox, onAddToCart, boxFull }) {
   const [cat, setCat] = useState('all')
   const [showAll, setShowAll] = useState(false)
   const ref = useReveal()
@@ -118,9 +152,9 @@ export default function Shop({ onAdd, boxFull }) {
         <div className="section-head" data-reveal>
           <h2>The flavor case</h2>
           <p>
-            Every square is cut from a slab we stirred ourselves. Pick your
-            favorites one at a time, or drop six straight into a{' '}
-            <a href="#build-a-box">Build-a-Box</a>.
+            Every square is cut from a slab we stirred ourselves. Add your
+            favorites to the cart one at a time, or drop six into a{' '}
+            <a href="#build-a-box">Build-a-Box</a> and save.
           </p>
         </div>
 
@@ -145,7 +179,8 @@ export default function Shop({ onAdd, boxFull }) {
             <FlavorCard
               key={f.id}
               flavor={f}
-              onAdd={onAdd}
+              onAddToBox={onAddToBox}
+              onAddToCart={onAddToCart}
               boxFull={boxFull}
               index={i}
             />
