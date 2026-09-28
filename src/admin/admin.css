@@ -20,12 +20,14 @@
      6. Page head & toolbar
      7. Table
      8. Events list
-     9. Dialogs — drawer, confirm, nav
-    10. Image field & library
-    11. Toasts, empty / loading / error states
-    12. Login
-    13. Responsive
-    14. Reduced motion
+     9. Corporate packages
+    10. Pricing
+    11. Dialogs — drawer, confirm, nav
+    12. Image field & library
+    13. Toasts, empty / loading / error states
+    14. Login
+    15. Responsive
+    16. Reduced motion
    ========================================================================= */
 
 /* ---------------------------------------------------------------- 1. tokens */
@@ -1961,7 +1963,128 @@ body.is-dragsorting .pkg-item.is-dragging:hover {
   color: var(--a-ink-2);
 }
 
-/* -------------------------------------------------------------- 10. dialogs */
+/* ---------------------------------------------------------------- 10. pricing */
+
+/* Three numbers that decide what a card is charged, so the screen is wider-
+   spaced than the list screens and every consequence is spelled out in place. */
+.pricing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s4);
+  max-width: 44rem;
+}
+
+.pricing-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  padding: var(--s3) var(--s4);
+  border: 1px solid var(--a-amber-line);
+  border-radius: var(--r);
+  background: var(--a-amber-pale);
+  color: var(--a-amber-ink);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+
+.pricing-notice svg {
+  flex: none;
+  margin-top: 0.1em;
+}
+
+.pricing-card {
+  padding: var(--s4) var(--s4) var(--s4);
+  border: 1px solid var(--a-line-soft);
+  border-radius: var(--r);
+  background: var(--a-surface);
+}
+
+.pricing-card__title {
+  margin-bottom: var(--s3);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--a-ink-2);
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--s4);
+}
+
+/* the arithmetic the client would otherwise have to do in their head */
+.pricing-math {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  padding: var(--s3);
+  border-radius: var(--r-sm);
+  background: var(--a-surface-2);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+  color: var(--a-ink-2);
+}
+
+.pricing-math svg {
+  flex: none;
+  margin-top: 0.1em;
+  color: var(--a-green-ink);
+}
+
+.pricing-math strong {
+  color: var(--a-ink);
+}
+
+.pricing-math.is-warning {
+  background: var(--a-amber-pale);
+  color: var(--a-amber-ink);
+}
+
+.pricing-math.is-warning svg {
+  color: var(--a-amber-ink);
+}
+
+.pricing-math.is-warning strong {
+  color: var(--a-amber-ink);
+}
+
+.pricing-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--s3);
+}
+
+.pricing-actions__note {
+  font-size: var(--t-sm);
+  color: var(--a-ink-dim);
+}
+
+/* inside the confirm, so the client re-reads the numbers as prices, not fields */
+.pricing-confirm {
+  margin-top: var(--s3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s1);
+}
+
+.pricing-confirm li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s1) 0;
+  border-bottom: 1px dashed var(--a-line);
+  font-size: var(--t-sm);
+}
+
+.pricing-confirm li:last-child {
+  border-bottom: 0;
+}
+
+/* -------------------------------------------------------------- 11. dialogs */
 
 .dlg {
   border: 0;
@@ -2181,7 +2304,7 @@ body.is-dragsorting .pkg-item.is-dragging:hover {
   margin-top: var(--s5);
 }
 
-/* ------------------------------------------------------- 11. image field */
+/* ------------------------------------------------------- 12. image field */
 
 .imagefield {
   display: flex;
@@ -2382,7 +2505,7 @@ body.is-dragsorting .pkg-item.is-dragging:hover {
   color: #fff;
 }
 
-/* ------------------------------------ 12. toasts, empty / loading / error */
+/* ------------------------------------ 13. toasts, empty / loading / error */
 
 .toaster {
   position: fixed;
@@ -2669,7 +2792,7 @@ body.is-dragsorting .pkg-item.is-dragging:hover {
   font-size: var(--t-sm) !important;
 }
 
-/* --------------------------------------------------------------- 13. login */
+/* --------------------------------------------------------------- 14. login */
 
 .login {
   display: grid;
@@ -2828,7 +2951,7 @@ body.is-dragsorting .pkg-item.is-dragging:hover {
   text-decoration: underline;
 }
 
-/* ---------------------------------------------------------- 14. responsive */
+/* ---------------------------------------------------------- 15. responsive */
 
 @media (min-width: 960px) {
   .login {
@@ -3157,7 +3280,7 @@ body.is-dragsorting .pkg-item.is-dragging:hover {
   }
 }
 
-/* ------------------------------------------------------ 15. reduced motion */
+/* ------------------------------------------------------ 16. reduced motion */
 
 @media (prefers-reduced-motion: reduce) {
   *,

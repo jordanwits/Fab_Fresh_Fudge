@@ -22,6 +22,7 @@ export function DataProvider({ children }) {
   const [flavors, setFlavors] = useState([])
   const [events, setEvents] = useState([])
   const [packages, setPackages] = useState([])
+  const [pricing, setPricing] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState(null)
 
@@ -29,14 +30,16 @@ export function DataProvider({ children }) {
     setLoading(true)
     setLoadError(null)
     try {
-      const [nextFlavors, nextEvents, nextPackages] = await Promise.all([
+      const [nextFlavors, nextEvents, nextPackages, nextPricing] = await Promise.all([
         backend.flavors.list(),
         backend.events.list(),
         backend.packages.list(),
+        backend.pricing.get(),
       ])
       setFlavors(nextFlavors)
       setEvents(nextEvents)
       setPackages(nextPackages)
+      setPricing(nextPricing)
     } catch (err) {
       setLoadError(err?.message || "Couldn't load your content.")
     } finally {
@@ -232,6 +235,18 @@ export function DataProvider({ children }) {
     [packages, toast]
   )
 
+  // --- pricing -------------------------------------------------------------
+
+  const updatePricing = useCallback(
+    async (patch) => {
+      const saved = await backend.pricing.update(patch)
+      setPricing(saved)
+      toast.success('Prices saved', 'The new prices are stored.')
+      return saved
+    },
+    [toast]
+  )
+
   // --- dev -----------------------------------------------------------------
 
   const resetSampleData = useCallback(async () => {
@@ -248,9 +263,11 @@ export function DataProvider({ children }) {
       flavors,
       events,
       packages,
+      pricing,
       loading,
       loadError,
       refresh,
+      updatePricing,
       createFlavor,
       updateFlavor,
       deleteFlavor,
@@ -269,9 +286,11 @@ export function DataProvider({ children }) {
       flavors,
       events,
       packages,
+      pricing,
       loading,
       loadError,
       refresh,
+      updatePricing,
       createFlavor,
       updateFlavor,
       deleteFlavor,

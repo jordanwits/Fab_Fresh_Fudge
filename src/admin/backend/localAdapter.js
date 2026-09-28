@@ -11,10 +11,12 @@
  * NOT SECURITY. Sign-in compares strings in the browser. See adapter.js.
  */
 
-import { FLAVORS } from '../../data/flavors.js'
+import { BOX_PRICE, FLAVORS, SQUARE_PRICE } from '../../data/flavors.js'
+import { SHIPPING_FEE } from '../../data/checkout.js'
 import { EVENTS, CORPORATE_TIERS } from '../../data/site.js'
 import { AuthError, DataError } from './errors.js'
 import { randomId } from '../lib/slug.js'
+import { parsePrice, validatePricing } from '../lib/price.js'
 import { toDateChip, byDate } from '../lib/eventDate.js'
 import {
   downscaleToDataURL,
@@ -105,6 +107,9 @@ function seed() {
       ...clone(f),
     })),
     packages: CORPORATE_TIERS.map((t) => ({ id: randomId('pkg'), ...clone(t) })),
+    // Seeded from what the site is actually charging today, so the screen
+    // opens on the truth rather than on a guess.
+    pricing: { squarePrice: SQUARE_PRICE, boxPrice: BOX_PRICE, shippingFee: SHIPPING_FEE },
     events: EVENTS.map((e, i) => {
       const dates = EVENT_SEED_DATES[i] || { startDate: '', endDate: '' }
       return {
@@ -139,6 +144,9 @@ function load() {
         const missing = ['flavors', 'events', 'packages'].filter(
           (key) => !Array.isArray(store[key])
         )
+        // `pricing` is an object rather than a collection, so it needs its own
+        // check -- Array.isArray would call a perfectly good record missing.
+        if (!store.pricing || typeof store.pricing !== 'object') missing.push('pricing')
         if (missing.length) {
           const fresh = seed()
           missing.forEach((key) => {
@@ -337,6 +345,38 @@ export const localAdapter = {
       db.packages = [...next, ...db.packages.filter((p) => !seen.has(p.id))]
       save()
       return clone(db.packages)
+    },
+  },
+
+  /**
+   * What things cost. One record, not a collection: every square is the same
+   * price and the box deal is one number, which is how the client sells it.
+   *
+   * Validated here as well as in the screen, because this stands in for a
+   * server: a price that reaches storage decides what a customer is charged,
+   * and "the form checked it" is not a guarantee anyone should rely on.
+   */
+  pricing: {
+    async get() {
+      await read()
+      return clone(load().pricing)
+    },
+
+    async update(patch) {
+      await write()
+      const db = load()
+      const next = { ...db.pricing, ...clone(patch) }
+      const errors = validatePricing(next)
+      const first = Object.values(errors)[0]
+      if (first) throw new DataError(first)
+
+      db.pricing = {
+        squarePrice: parsePrice(next.squarePrice),
+        boxPrice: parsePrice(next.boxPrice),
+        shippingFee: parsePrice(next.shippingFee),
+      }
+      save()
+      return clone(db.pricing)
     },
   },
 

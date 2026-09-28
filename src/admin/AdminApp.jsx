@@ -8,6 +8,7 @@ import Shell from './screens/Shell.jsx'
 import FlavorsScreen from './screens/FlavorsScreen.jsx'
 import EventsScreen from './screens/EventsScreen.jsx'
 import PackagesScreen from './screens/PackagesScreen.jsx'
+import PricingScreen from './screens/PricingScreen.jsx'
 import Button from './ui/Button.jsx'
 import Icon from './ui/Icon.jsx'
 
@@ -69,6 +70,7 @@ const SCREENS = {
   flavors: FlavorsScreen,
   events: EventsScreen,
   packages: PackagesScreen,
+  pricing: PricingScreen,
 }
 
 function Dashboard() {

@@ -56,9 +56,9 @@ in both; this repo keeps the original "corner fudge shop" design.
   - `ui/` — the shared vocabulary: Button, Field, Dialog (native `<dialog>`), Drawer,
     ConfirmDialog, Toaster, Icon (one hand-rolled SVG set), States (empty/error/skeleton)
   - `lib/` — `useDragSort` (reorder-by-drag, no library), `eventDate`, `slug`, `image`,
-    `router`, `useClosing`
+    `router`, `useClosing`, `price` (parse/validate money, used by the screen AND the adapter)
   - `screens/` — Login, Shell, FlavorsScreen + FlavorEditor, EventsScreen + EventEditor,
-    PackagesScreen + PackageEditor, ImageField
+    PackagesScreen + PackageEditor, PricingScreen, ImageField
   - `admin.css` — ALL admin styling and its own token set (prefixed `--a-*`)
 - `public/images/` — self-hosted photos: `flavors/` (19 original jpegs) plus
   `flavors/FlavorImages/` (client's 2026-08-10 reshoot — 10 flavors now point here), hero/story/
@@ -265,4 +265,18 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
 - `localAdapter.load()` BACKFILLS a stored blob that predates a collection instead of
   discarding it. The shape guard only checks `flavors`/`events`, so a browser holding a
   pre-packages `fff-admin/v1` blob passes it and would then hand the screen an undefined
-  array. Any future collection has to be added to that backfill list too.
+  array. Any future collection has to be added to that backfill list too — `pricing` is
+  there already but checked separately, since it is an object and `Array.isArray` would
+  call a perfectly good record missing.
+- The Pricing screen (added 2026-09-28) edits `{ squarePrice, boxPrice, shippingFee }` —
+  plain dollars, matching `SQUARE_PRICE`/`BOX_PRICE` in `flavors.js` and `SHIPPING_FEE` in
+  `checkout.js`. It is UI ONLY and says so on screen while `backend.isMock`: the site and
+  `server/checkout.js` still read the constants compiled into `src/data/`, so saving here
+  changes no price a customer pays. Finishing it means three things landing together —
+  `cart.js` taking prices as input, the checkout function reading the same stored record at
+  request time, and security rules plus server-side `validatePricing` on writes. The seam
+  doc at the top of `backend/adapter.js` spells it out under "PRICING, WHEN THE BACKEND IS
+  REAL".
+- Prices are deliberately GLOBAL, not per-flavor: every square sells for the same price,
+  and a mixed six-pack would need a pricing rule (flat? cheapest free? sum minus one?) that
+  nobody has decided. Don't add a per-flavor price field without settling that first.

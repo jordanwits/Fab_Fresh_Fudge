@@ -24,6 +24,7 @@ const NAV = [
   { route: 'flavors', label: 'Flavors', icon: 'image', blurb: 'The flavor case' },
   { route: 'events', label: 'Shows', icon: 'calendar', blurb: 'Upcoming schedule' },
   { route: 'packages', label: 'Corporate Gifts', icon: 'gift', blurb: 'Gift packages' },
+  { route: 'pricing', label: 'Pricing', icon: 'tag', blurb: 'What things cost' },
 ]
 
 function NavList({ route, counts, onNavigate }) {
@@ -45,7 +46,9 @@ function NavList({ route, counts, onNavigate }) {
                   <span className="rail__link-label">{item.label}</span>
                   <span className="rail__link-blurb">{item.blurb}</span>
                 </span>
-                <span className="rail__count">{counts[item.route]}</span>
+                {counts[item.route] != null ? (
+                  <span className="rail__count">{counts[item.route]}</span>
+                ) : null}
               </a>
             </li>
           )

@@ -43,6 +43,10 @@
  *   remove(id)           -> Promise<void>
  *   reorder(orderedIds)  -> Promise<CorporatePackage[]>
  *
+ * backend.pricing
+ *   get()                -> Promise<Pricing>
+ *   update(patch)        -> Promise<Pricing>    validates; throws DataError
+ *
  * backend.media
  *   upload(file)         -> Promise<{ url }>    url is whatever <img src> needs
  *   library()            -> Promise<string[]>   already-available image paths
@@ -73,6 +77,15 @@
  *           rather than numbers: they are printed verbatim and the client
  *           quotes real jobs by email anyway. Array order is the price ladder
  *           the section reads down, so it is stored, not sorted.
+ *
+ * ---------------------------------------------------------------------------
+ * Pricing   { squarePrice, boxPrice, shippingFee }
+ *           Plain dollars (7, 35, 12), matching SQUARE_PRICE / BOX_PRICE in
+ *           src/data/flavors.js and SHIPPING_FEE in src/data/checkout.js, which
+ *           is where the site and the checkout function read them from TODAY.
+ *           Editing them here does not move those files: closing that loop is
+ *           part of wiring a real backend, and it is the one piece of this
+ *           dashboard that changes what a customer is charged. See below.
  *
  * ---------------------------------------------------------------------------
  * AuthError
@@ -113,6 +126,20 @@
  *
  *   Lock it down with security rules: public read, writes only for uids
  *   carrying an `admin` custom claim.
+ *
+ * PRICING, WHEN THE BACKEND IS REAL
+ *
+ * The pricing screen writes through `backend.pricing`, but the public site and
+ * server/checkout.js still import the constants in src/data/. Three things have
+ * to happen together, or the site will show one price and charge another:
+ *
+ *   1. The site reads pricing from the backend instead of the constants —
+ *      src/lib/cart.js takes prices as input rather than importing them, and
+ *      Shop / BuildABox / CartDrawer read them from context.
+ *   2. server/checkout.js reads the SAME record at request time, so the charge
+ *      is decided server-side from the stored price, never from the browser.
+ *   3. Writes to pricing are locked to admins in the security rules, and
+ *      re-validated server-side (see src/admin/lib/price.js).
  *
  * EITHER WAY, READ THIS: the mock adapter's sign-in is a UI stub, not security.
  * It compares strings in the browser, so anyone can read the credentials in the
