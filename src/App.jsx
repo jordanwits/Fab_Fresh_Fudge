@@ -5,7 +5,6 @@ import { useCart } from './hooks/useCart.js'
 import Header from './components/Header.jsx'
 import Hero from './components/Hero.jsx'
 import Shop from './components/Shop.jsx'
-import Specials from './components/Specials.jsx'
 import BuildABox from './components/BuildABox.jsx'
 import Story from './components/Story.jsx'
 import Reviews from './components/Reviews.jsx'
@@ -105,7 +104,6 @@ export default function App() {
           onAddToCart={addSquareToCart}
           boxFull={box.length >= BOX_SIZE}
         />
-        <Specials />
         <BuildABox
           box={box}
           onAdd={addToBox}

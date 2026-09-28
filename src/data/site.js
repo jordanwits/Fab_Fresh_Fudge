@@ -1,5 +1,5 @@
-// Events and specials are drafted placeholders for the client to swap with
-// their real show schedule and current promotion. The reviews are real quotes
+// Events are drafted placeholders for the client to swap with their real show
+// schedule. The reviews are real quotes
 // the client supplied; they came without names or order details, so the cards
 // carry the quote alone.
 
@@ -56,13 +56,6 @@ export const EVENTS = [
     detail: 'The big one: all twenty flavors on the slab.',
   },
 ]
-
-export const SPECIAL = {
-  kicker: 'June special',
-  title: 'Buy three squares, get a fourth free',
-  body: 'Mix and match any flavors in the case, and the cheapest square is on us. Online and at every show this month.',
-  code: 'FABFOUR',
-}
 
 export const CORPORATE_TIERS = [
   {
