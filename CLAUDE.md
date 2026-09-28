@@ -68,11 +68,21 @@ in both; this repo keeps the original "corner fudge shop" design.
 
 ## Deployment
 
-Vercel (chosen 2026-09-16, not yet set up). No `vercel.json` is needed: Vercel's Vite preset builds
-`dist/`, and `api/checkout.js` becomes the function. Environment variables (see `.env.example`):
-`SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`, `SQUARE_ENVIRONMENT` (`production`|`sandbox`, default
-sandbox), optional `VITE_CHECKOUT_SEASON` (`open`|`closed`). Production scope gets production Square
-values, Preview scope gets Sandbox values.
+LIVE on Vercel since 2026-09-28: project `fab-fresh-fudge`, https://fab-fresh-fudge.vercel.app,
+auto-deploying from `main` of jordanwits/Fab_Fresh_Fudge. No `vercel.json`: the Vite preset builds
+`dist/` and `api/checkout.js` becomes the function. The custom domain is NOT attached —
+fabfreshfudge.com still serves the client's old Square Online store.
+
+Production environment variables (see `.env.example`): `SQUARE_ACCESS_TOKEN` (Secret type, the
+client's production token, entered by Jordan — Claude never handles Square tokens),
+`SQUARE_LOCATION_ID` = `LVDVGM2FJK8K4` (Churn Creek, the fudge kitchen; the client wants to switch to
+Redding Mall `L9NRMTK7SGZAH` for December at the mall, which is this variable plus a redeploy), and
+`SQUARE_ENVIRONMENT` = `production`. Preview/Development have NO variables, so checkout there answers
+503 rather than touching the real account. `VITE_CHECKOUT_SEASON` is absent on purpose: it was added
+as `open` only to test before the season starts, then deleted.
+
+Other production location IDs: Fabulous Fudge (Main) `L3ANY0KMHNWMF` (what the old Square Online
+store ships from), Redding Mall `L9NRMTK7SGZAH`.
 
 ## Conventions / gotchas
 
@@ -137,6 +147,12 @@ values, Preview scope gets Sandbox values.
   (`placed…`) and then strips the query with `history.replaceState`. Landing on `/?order=placed`
   clears the cart by design.
 - Payment links are pinned to `Square-Version: 2026-08-19` (`SQUARE_VERSION` in `server/checkout.js`).
+- PRODUCTION verified 2026-09-28: the deployed function created a real payment link on the client's
+  account (merchant MLF48BP5G30BZ) for a $7 square + $35 box + $12 shipping = $54.00, with the
+  shipping address form, card, Google Pay and Cash App Pay. Nobody paid it, so an unpaid DRAFT order
+  sits in their Square account from that test. The season gate was briefly opened to run it and is
+  closed again; checkout opens by itself on Nov 1 with no redeploy, because only the override is
+  build-time.
 - Verified end to end against Square SANDBOX on 2026-09-16: Square accepted the payment link
   (including the $0 box modifiers), recorded the exact totals the drawer shows, no tax, a SHIPMENT
   fulfillment, and after a simulated payment the order went OPEN, the receipt email was sent, and the
