@@ -37,7 +37,9 @@ in both; this repo keeps the original "corner fudge shop" design.
     the public-site twin of the admin's `ui/Dialog.jsx`, kept separate so no admin code ships)
   - `server/checkout.js` — host-agnostic Request→Response handler that calls Square
     `CreatePaymentLink`; `api/checkout.js` is the thin Vercel wrapper; `vite.config.js`'s
-    `checkoutApiDev` plugin mounts the same handler at `/api/checkout` during `npm run dev`
+    `apiDev` plugin mounts every handler in `DEV_API` during `npm run dev`
+  - `src/components/QuoteForm.jsx` + `server/quote.js` + `api/quote.js` — the out-of-season
+    shipping quote form, emailed to the shop via Web3Forms (`WEB3FORMS_ACCESS_KEY`)
 - `src/styles.css` — ALL styling and the design tokens for the PUBLIC SITE in this one file
   (no CSS Modules). The admin has its own stylesheet; see below.
 - `admin/index.html` + `src/admin/` — the staff dashboard, a second Vite entry (added
@@ -119,7 +121,12 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   "from $42" for a six-pack; both need the client's real wording.
 - Shipping season is NOVEMBER 1 - April 30 (client, 2026-09-28; their Square store's own policy said
   Oct-April). They CAN ship in summer but have to add ice packs and charge more, so May-Oct orders
-  are meant to go through a contact/quote form — that form is NOT built yet.
+  go through the quote form (cart's closed-season panel, plus a footer link that only appears
+  out of season). It POSTs to `/api/quote`, which emails the shop through Web3Forms with the
+  customer's cart written out and priced. The key is held SERVER-side on purpose: Web3Forms
+  says it is safe in a browser, but a key in the bundle is a key bots can scrape and use to
+  flood the inbox. With no key the endpoint answers 503 `not_configured` and the form offers a
+  prefilled mailto instead, so it degrades rather than breaks.
 - Git repo on `main`, pushed to https://github.com/jordanwits/Fab_Fresh_Fudge — a PUBLIC repo, so
   anything committed (including the admin demo credentials) is world-readable. `.gitignore` keeps
   `node_modules/`, `dist/`, and the 51 MB `originals/` tree out of version control.

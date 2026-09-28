@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { CONTACT } from '../data/site.js'
 
-export default function Footer() {
+export default function Footer({ season, onRequestQuote }) {
   const [email, setEmail] = useState('')
   const [done, setDone] = useState(false)
 
@@ -71,6 +71,13 @@ export default function Footer() {
             Questions about an order, an event, or a flavor idea? We read
             everything.
           </p>
+          {season && !season.open && (
+            // Out of season the shop still ships, packed with ice, for a price
+            // they work out by hand.
+            <button type="button" className="footer-quote" onClick={onRequestQuote}>
+              Ask about summer shipping
+            </button>
+          )}
         </div>
 
         <div className="footer-news">

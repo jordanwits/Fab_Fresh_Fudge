@@ -56,6 +56,7 @@ How it fits together:
 | Cart drawer, thank-you dialog | `src/components/CartDrawer.jsx`, `OrderPlaced.jsx` |
 | Creates the Square payment link | `server/checkout.js` |
 | Vercel function wrapper → `POST /api/checkout` | `api/checkout.js` |
+| Out-of-season quote form + its handler | `src/components/QuoteForm.jsx`, `server/quote.js`, `api/quote.js` |
 
 The browser only sends flavor ids and quantities. The server recomputes every price,
 re-checks stock and the shipping season, then calls Square's `CreatePaymentLink`, so a
@@ -65,7 +66,9 @@ server environment variables.
 **Shipping season.** The client only ships November through April (heat-sensitive fudge).
 Outside those months the cart still works but checkout is closed, with a note saying it
 reopens November 1. Summer orders are possible but need ice packs and cost more, so the
-client quotes those by email rather than selling them here. `VITE_CHECKOUT_SEASON=open` or `closed` overrides the calendar, for
+cart and the footer offer a **quote form** instead: it emails the shop the customer's
+details and cart through Web3Forms (`WEB3FORMS_ACCESS_KEY`). Until that key is set, the
+form says so and falls back to a prefilled email to the shop. `VITE_CHECKOUT_SEASON=open` or `closed` overrides the calendar, for
 testing in summer or pausing orders early.
 
 ### Square setup

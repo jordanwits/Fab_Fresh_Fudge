@@ -1,5 +1,5 @@
 import { useReveal } from '../hooks/useReveal.js'
-import { EVENTS } from '../data/site.js'
+import { CONTACT, EVENTS } from '../data/site.js'
 
 export default function Events() {
   const ref = useReveal()
@@ -34,7 +34,7 @@ export default function Events() {
 
         <p className="events-note" data-reveal>
           Booking us for your festival or market?{' '}
-          <a href="mailto:hello@fabfreshfudge.com?subject=Event%20inquiry">
+          <a href={`mailto:${CONTACT.email}?subject=Event%20inquiry`}>
             Get in touch
           </a>
           .

@@ -14,6 +14,7 @@ import Footer from './components/Footer.jsx'
 import BoxPill from './components/BoxPill.jsx'
 import CartDrawer from './components/CartDrawer.jsx'
 import OrderPlaced from './components/OrderPlaced.jsx'
+import QuoteForm from './components/QuoteForm.jsx'
 
 // Square appends its own parameters to the redirect URL, so match the prefix
 // rather than the whole value.
@@ -28,6 +29,7 @@ export default function App() {
 
   const { lines, count, problems, addSquare, addBox, setQty, removeLine, clear } = useCart()
   const [cartOpen, setCartOpen] = useState(false)
+  const [quoteOpen, setQuoteOpen] = useState(false)
   const [orderPlaced, setOrderPlaced] = useState(returnedFromCheckout)
   const [announcement, setAnnouncement] = useState('')
 
@@ -88,6 +90,13 @@ export default function App() {
     setCartOpen(true)
   }, [addBox, box])
 
+  // Out of season the cart hands over to the quote form; one overlay at a
+  // time, so the drawer closes on the way.
+  const openQuote = useCallback(() => {
+    setCartOpen(false)
+    setQuoteOpen(true)
+  }, [])
+
   const openCart = useCallback(() => setCartOpen(true), [])
   const closeCart = useCallback(() => setCartOpen(false), [])
   const closeOrderPlaced = useCallback(() => setOrderPlaced(false), [])
@@ -116,9 +125,16 @@ export default function App() {
         <Events />
         <Corporate />
       </main>
-      <Footer />
+      <Footer season={season} onRequestQuote={openQuote} />
       <BoxPill count={box.length} bump={bump} />
-      <CartDrawer open={cartOpen} onClose={closeCart} cart={cart} season={season} />
+      <CartDrawer
+        open={cartOpen}
+        onClose={closeCart}
+        cart={cart}
+        season={season}
+        onRequestQuote={openQuote}
+      />
+      <QuoteForm open={quoteOpen} onClose={() => setQuoteOpen(false)} lines={lines} />
       <OrderPlaced open={orderPlaced} onClose={closeOrderPlaced} />
       <p className="visually-hidden" aria-live="polite">
         {announcement}

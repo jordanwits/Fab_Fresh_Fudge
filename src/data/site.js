@@ -78,8 +78,9 @@ export const CORPORATE_TIERS = [
   },
 ]
 
+// Harvested from the client's live Square store (their own contact + socials).
 export const CONTACT = {
-  email: 'hello@fabfreshfudge.com',
-  instagram: 'https://www.instagram.com/',
-  facebook: 'https://www.facebook.com/',
+  email: 'fabfreshfudge@gmail.com',
+  instagram: 'https://www.instagram.com/fabfreshfudge',
+  facebook: 'https://www.facebook.com/fabfreshfudge',
 }

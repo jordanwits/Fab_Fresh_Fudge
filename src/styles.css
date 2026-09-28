@@ -1803,6 +1803,10 @@ section {
   width: min(26rem, calc(100vw - 2rem));
 }
 
+.overlay--center:has(.quote) {
+  width: min(32rem, calc(100vw - 2rem));
+}
+
 @keyframes overlay-fade {
   from {
     opacity: 0;
@@ -1840,11 +1844,13 @@ section {
   animation: overlay-slide 200ms ease-in reverse forwards;
 }
 
-.overlay--center[open] .order-placed {
+.overlay--center[open] .order-placed,
+.overlay--center[open] .quote {
   animation: overlay-pop 300ms var(--ease-out);
 }
 
-.overlay--center.is-closing .order-placed {
+.overlay--center.is-closing .order-placed,
+.overlay--center.is-closing .quote {
   animation: overlay-fade 200ms ease-in reverse forwards;
 }
 
@@ -2197,6 +2203,200 @@ section {
   margin-top: 1.4rem;
 }
 
+/* ---------- summer shipping quote form ---------- */
+
+.quote {
+  position: relative;
+  padding: clamp(1.6rem, 4vw, 2.2rem);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 30px 80px oklch(0.1 0.025 48 / 0.45);
+  max-height: min(88dvh, 44rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.quote-close {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  transition:
+    border-color 160ms var(--ease-out),
+    color 160ms var(--ease-out);
+}
+
+.quote-close:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.quote h2 {
+  font-size: clamp(1.5rem, 3.5vw, 1.9rem);
+  padding-right: 2.5rem;
+}
+
+.quote-lede {
+  margin-top: 0.7rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+/* what they were about to buy, carried into the email */
+.quote-cart {
+  margin-top: 1.1rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1.5px dashed var(--line);
+  font-size: 0.9rem;
+}
+
+.quote-cart h3 {
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.quote-cart ul {
+  margin-top: 0.4rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.quote-cart > p {
+  margin-top: 0.45rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.field {
+  margin-top: 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.field label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.field label span {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.field input,
+.field textarea {
+  width: 100%;
+  padding: 0.62rem 0.8rem;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.97rem;
+  transition: border-color 160ms var(--ease-out);
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 4.5rem;
+}
+
+.field input:hover,
+.field textarea:hover {
+  border-color: var(--muted);
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible {
+  border-color: var(--blue);
+  outline-offset: 1px;
+}
+
+.field input[aria-invalid],
+.field textarea[aria-invalid] {
+  border-color: var(--butter-deep);
+}
+
+.quote-alert {
+  margin-top: 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-sm);
+  background: oklch(0.885 0.062 82 / 0.55);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.quote-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  margin-top: 1.3rem;
+}
+
+.quote-actions p {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.quote-done {
+  text-align: center;
+  padding-block: 0.5rem;
+}
+
+.quote-done p {
+  margin-top: 0.7rem;
+  color: var(--muted);
+}
+
+.quote-done .btn {
+  margin-top: 1.3rem;
+}
+
+/* the cart's closed-season panel */
+.cart-season-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-top: 0.85rem;
+}
+
+.cart-season-actions .btn {
+  padding-block: 0.55rem;
+}
+
+.footer-quote {
+  margin-top: 0.8rem;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--butter);
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.footer-quote:hover {
+  color: var(--cream);
+}
+
 /* ---------- responsive ---------- */
 
 @media (max-width: 1020px) {
@@ -2494,7 +2694,8 @@ section {
   .cart-button-count,
   .overlay[open]::backdrop,
   .overlay--drawer[open] .cart,
-  .overlay--center[open] .order-placed {
+  .overlay--center[open] .order-placed,
+  .overlay--center[open] .quote {
     animation: none;
   }
 

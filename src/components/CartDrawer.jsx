@@ -104,7 +104,7 @@ function CartLine({ line, problem, onQty, onRemove }) {
   )
 }
 
-export default function CartDrawer({ open, onClose, cart, season }) {
+export default function CartDrawer({ open, onClose, cart, season, onRequestQuote }) {
   const { lines, problems, setQty, removeLine } = cart
   const titleRef = useRef(null)
   const [status, setStatus] = useState({ state: 'idle' })
@@ -267,13 +267,19 @@ export default function CartDrawer({ open, onClose, cart, season }) {
                       <strong>Checkout reopens {season.reopens}.</strong>
                       <p>
                         Fudge and summer delivery trucks don't mix, so we only ship{' '}
-                        {SHIPPING_SEASON_LABEL}. Your cart is saved on this device until then.
+                        {SHIPPING_SEASON_LABEL}. We can still send it packed with ice —
+                        ask us for a quote, and your cart is saved here until then.
                       </p>
                     </>
                   )}
-                  <a href="#events" onClick={onClose}>
-                    Find us at a show
-                  </a>
+                  <div className="cart-season-actions">
+                    <button type="button" className="btn btn-butter" onClick={onRequestQuote}>
+                      Ask about summer shipping
+                    </button>
+                    <a href="#events" onClick={onClose}>
+                      Find us at a show
+                    </a>
+                  </div>
                 </div>
               )}
             </div>
