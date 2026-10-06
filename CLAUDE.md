@@ -60,6 +60,10 @@ in both; this repo keeps the original "corner fudge shop" design.
   - `screens/` — Login, Shell, FlavorsScreen + FlavorEditor, EventsScreen + EventEditor,
     PackagesScreen + PackageEditor, PricingScreen, ImageField
   - `admin.css` — ALL admin styling and its own token set (prefixed `--a-*`)
+- `public/favicon-32.png`, `favicon-192.png`, `apple-touch-icon.png` (180px, logo on white because iOS
+  fills transparency with black) — generated 2026-10-06 from `public/images/Logos/Fab Fresh Color.png`
+  (padded square, Lanczos downscale). Regenerate from that logo if it changes. Both
+  `index.html` and `admin/index.html` link them.
 - `public/images/` — self-hosted photos: `flavors/` (19 original jpegs) plus
   `flavors/FlavorImages/` (client's 2026-08-10 reshoot — 10 flavors now point here), hero/story/
   corporate shots, client logo in `Logos/Fab Fresh Color.png`
