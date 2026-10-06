@@ -75,7 +75,9 @@ export default function Header({ cartCount, onOpenCart }) {
   }, [open])
 
   return (
-    <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
+    <header
+      className={`site-header${scrolled ? ' is-scrolled' : ''}${open ? ' is-menu-open' : ''}`}
+    >
       <div className="header-inner">
         <Wordmark />
 

@@ -1,26 +1,31 @@
 /* ============================================================
    Fab Fresh Fudge — design system
-   Palette (client swatches): Vanilla #FFF6E6 · Buttercream #F3D9A4
-   · Milk Chocolate #7A4A2A · Dark Cocoa #3D2418 · Fresh Blue #2B99D1.
-   Warm cocoa/cream base, Fresh Blue as the single brand pop.
+   "Mt. Shasta alpine": the shop sits under the mountain on the logo, so the
+   chrome is sky, snow and night-navy, like a vintage national-park poster.
+   Brown was retired from the UI on 2026-10-06 (client asked to lean into
+   blue) — the fudge photography carries all the chocolate now.
+   Client swatches still in play: Fresh Blue #2B99D1 (the brand) and
+   Buttercream #F3D9A4 (the one warm accent: stars, badges, prices on blue).
    Display: Young Serif · Body/UI: Figtree
    ============================================================ */
 
 :root {
-  /* color */
+  /* color — light surfaces */
   --bg: oklch(1 0 0);
-  --surface: oklch(0.975 0.018 85); /* Vanilla #FFF6E6 — tinted cards/sections */
-  --ink: oklch(0.29 0.045 50); /* Dark Cocoa #3D2418 — body text on light */
-  --muted: oklch(0.45 0.075 52); /* Milk Chocolate #7A4A2A — secondary text */
-  --line: oklch(0.9 0.03 82);
+  /* ice: Fresh Blue washed 8% onto white — cards, Build a Box, header bar,
+     drawers. Opaque on purpose: the fixed header has content behind it */
+  --surface: oklch(0.971 0.012 231);
+  --ink: oklch(0.27 0.06 252); /* night navy — body text on light */
+  --muted: oklch(0.45 0.07 248); /* slate blue — secondary text on light */
+  --line: oklch(0.9 0.025 238);
+  /* photo placeholder while a flavor shot loads (and the empty-thumb tile) */
+  --placeholder: oklch(0.86 0.04 236);
 
-  /* cocoa drench — Dark Cocoa sections, Milk Chocolate raised surfaces */
-  --cocoa-deep: oklch(0.29 0.045 50); /* Dark Cocoa #3D2418 */
-  --cocoa-deepest: oklch(0.23 0.04 47); /* footer, floating pill */
-  --cocoa: oklch(0.45 0.075 52); /* Milk Chocolate #7A4A2A — raised */
-  --cocoa-soft: oklch(0.52 0.075 54);
-  --cream: oklch(0.975 0.018 85); /* Vanilla #FFF6E6 — text on dark */
-  --cream-muted: oklch(0.84 0.045 80); /* soft buttercream — secondary on dark */
+  /* night — the dark end of the ramp: footer, floating pill, drawer header */
+  --night: oklch(0.31 0.08 252);
+  --night-deep: oklch(0.23 0.065 255);
+  --snow: oklch(0.985 0.008 235); /* text on dark */
+  --snow-muted: oklch(0.86 0.04 235); /* secondary text on dark */
 
   /* brand Fresh Blue — interactive (deepened for white-text contrast) */
   --blue: oklch(0.52 0.13 240);
@@ -28,10 +33,16 @@
   --blue-pale: oklch(0.93 0.04 235); /* chips, tints — blue-ink text */
   --blue-ink: oklch(0.4 0.12 242);
 
-  /* Fresh Blue #2B99D1 at full brightness — reserved for small pops on dark */
-  --sky: oklch(0.66 0.13 238);
+  /* deep Fresh Blue drench — Reviews + Corporate sections, snow text */
+  --blue-drench: oklch(0.46 0.085 243);
+  --blue-raised: oklch(0.52 0.085 241); /* cards on the drench */
 
-  /* Buttercream warm accent — badges, stars, accents on dark */
+  /* Fresh Blue #2B99D1 at full brightness — rules, borders, pops on dark */
+  --sky: oklch(0.66 0.13 238);
+  /* lifted Fresh Blue — small TEXT on navy (Fresh Blue itself is too dark there) */
+  --sky-light: oklch(0.82 0.08 236);
+
+  /* Buttercream — the single warm accent: stars, badges, prices on blue */
   --butter: oklch(0.885 0.062 82); /* Buttercream #F3D9A4 */
   --butter-deep: oklch(0.46 0.1 68); /* deep amber — accent text on light */
 
@@ -55,8 +66,9 @@
   /* layout — header is fixed, so the hero has to clear it itself */
   --header-h: 5.1rem;
 
-  /* photographic scrim tint — near-black cocoa, for text over imagery */
-  --scrim: 0.16 0.03 45;
+  /* photographic scrim — plain black, for text over the hero photo (client
+     preferred a neutral wash to a navy one: it doesn't tint the mountain) */
+  --scrim: 0 0 0;
 }
 
 /* ---------- reset & base ---------- */
@@ -183,19 +195,19 @@ ol {
 }
 
 .btn-primary:disabled {
-  background: oklch(0.87 0.02 84);
-  color: oklch(0.5 0.03 60);
+  background: oklch(0.9 0.015 240);
+  color: oklch(0.48 0.03 245);
   cursor: not-allowed;
 }
 
 .btn-ghost {
-  border-color: oklch(0.97 0.012 85 / 0.45);
-  color: var(--cream);
+  border-color: oklch(0.985 0.008 235 / 0.45);
+  color: var(--snow);
 }
 
 .btn-ghost:hover {
-  border-color: var(--cream);
-  background: oklch(0.97 0.012 85 / 0.08);
+  border-color: var(--snow);
+  background: oklch(0.985 0.008 235 / 0.08);
 }
 
 .btn-outline {
@@ -205,12 +217,12 @@ ol {
 
 .btn-outline:hover {
   background: var(--ink);
-  color: var(--cream);
+  color: var(--snow);
 }
 
 .btn-butter {
   background: var(--butter);
-  color: var(--cocoa-deepest);
+  color: var(--night-deep);
 }
 
 .btn-butter:hover {
@@ -268,7 +280,7 @@ ol {
 
 .badge-butter {
   background: var(--butter);
-  color: var(--cocoa-deepest);
+  color: var(--night-deep);
 }
 
 .badge-blue {
@@ -277,8 +289,8 @@ ol {
 }
 
 .badge-sold {
-  background: var(--cocoa-deepest);
-  color: var(--cream);
+  background: var(--night-deep);
+  color: var(--snow);
 }
 
 /* ---------- header ---------- */
@@ -311,12 +323,43 @@ ol {
 }
 
 .site-header.is-scrolled {
-  background: var(--cocoa-deep);
-  box-shadow: 0 10px 30px oklch(0.1 0.025 48 / 0.5);
+  background: var(--surface);
+  box-shadow:
+    0 1px 0 var(--line),
+    0 8px 24px oklch(0.3 0.07 250 / 0.08);
 }
 
-.site-header.is-scrolled::before {
+.site-header.is-scrolled::before,
+.site-header.is-menu-open::before {
   opacity: 0;
+}
+
+/* Light bar: once it leaves the hero photo (or the phone menu opens over
+   everything) the header's snow-on-photo colours flip to navy-on-ice. */
+.site-header:is(.is-scrolled, .is-menu-open) :is(.wordmark, .main-nav a, .cart-button, .nav-toggle) {
+  color: var(--ink);
+}
+
+.site-header:is(.is-scrolled, .is-menu-open) .wordmark em {
+  color: var(--blue);
+}
+
+.site-header:is(.is-scrolled, .is-menu-open) .main-nav a:hover {
+  color: var(--blue-deep);
+  border-bottom-color: var(--blue);
+}
+
+.site-header:is(.is-scrolled, .is-menu-open) .cart-button {
+  border-color: oklch(0.27 0.06 252 / 0.25);
+}
+
+.site-header:is(.is-scrolled, .is-menu-open) .cart-button:hover {
+  border-color: var(--ink);
+  background: oklch(0.27 0.06 252 / 0.05);
+}
+
+.site-header:is(.is-scrolled, .is-menu-open) .cart-button-count {
+  box-shadow: 0 0 0 2px var(--surface);
 }
 
 .header-inner {
@@ -334,7 +377,7 @@ ol {
   align-items: center;
   gap: 0.6rem;
   text-decoration: none;
-  color: var(--cream);
+  color: var(--snow);
   font-family: var(--font-display);
   font-size: 1.32rem;
   line-height: 1;
@@ -343,7 +386,7 @@ ol {
 
 .wordmark em {
   font-style: normal;
-  color: var(--butter);
+  color: var(--sky-light);
 }
 
 .wordmark-logo {
@@ -359,7 +402,7 @@ ol {
 }
 
 .main-nav a {
-  color: var(--cream);
+  color: var(--snow);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.95rem;
@@ -369,8 +412,8 @@ ol {
 }
 
 .main-nav a:hover {
-  color: var(--butter);
-  border-bottom-color: var(--butter);
+  color: var(--sky-light);
+  border-bottom-color: var(--sky);
 }
 
 .header-actions {
@@ -392,17 +435,17 @@ ol {
   width: 2.75rem;
   height: 2.75rem;
   border-radius: 999px;
-  border: 1.5px solid oklch(0.97 0.012 85 / 0.4);
+  border: 1.5px solid oklch(0.985 0.008 235 / 0.4);
   background: none;
-  color: var(--cream);
+  color: var(--snow);
   transition:
     border-color 180ms var(--ease-out),
     background-color 180ms var(--ease-out);
 }
 
 .cart-button:hover {
-  border-color: var(--cream);
-  background: oklch(0.97 0.012 85 / 0.08);
+  border-color: var(--snow);
+  background: oklch(0.985 0.008 235 / 0.08);
 }
 
 .cart-button-count {
@@ -416,11 +459,11 @@ ol {
   padding-inline: 0.3rem;
   border-radius: 999px;
   background: var(--butter);
-  color: var(--cocoa-deepest);
+  color: var(--night-deep);
   font-size: 0.75rem;
   font-weight: 800;
   line-height: 1;
-  box-shadow: 0 0 0 2px var(--cocoa-deep);
+  box-shadow: 0 0 0 2px var(--night);
   animation: pill-pulse 420ms var(--ease-out);
 }
 
@@ -430,7 +473,7 @@ ol {
   gap: 0.55rem;
   border: 0;
   background: none;
-  color: var(--cream);
+  color: var(--snow);
   font-weight: 700;
   font-size: 0.95rem;
   padding: 0.4rem 0.2rem;
@@ -472,8 +515,8 @@ ol {
   min-height: 100svh;
   display: flex;
   flex-direction: column;
-  background: var(--cocoa-deepest);
-  color: var(--cream);
+  background: var(--night-deep);
+  color: var(--snow);
   overflow: clip;
 }
 
@@ -575,7 +618,7 @@ ol {
   margin-top: clamp(1rem, 2vh, 1.5rem);
   font-size: clamp(1.08rem, 1.6vw, 1.24rem);
   line-height: 1.65;
-  color: var(--cream);
+  color: var(--snow);
   text-shadow:
     0 1px 2px oklch(var(--scrim) / 0.6),
     0 2px 18px oklch(var(--scrim) / 0.78);
@@ -590,7 +633,7 @@ ol {
 
 /* sits over the photo, so the ghost outline needs a touch more presence */
 .hero-actions .btn-ghost {
-  border-color: oklch(0.97 0.012 85 / 0.6);
+  border-color: oklch(0.985 0.008 235 / 0.6);
   backdrop-filter: blur(6px);
 }
 
@@ -601,7 +644,7 @@ ol {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  color: var(--cream-muted);
+  color: var(--snow-muted);
   text-decoration: none;
   font-size: 0.86rem;
   font-weight: 600;
@@ -610,7 +653,7 @@ ol {
 }
 
 .hero-scroll:hover {
-  color: var(--cream);
+  color: var(--snow);
 }
 
 .hero-scroll-dot {
@@ -619,14 +662,14 @@ ol {
   width: 2.1rem;
   height: 2.1rem;
   flex: none;
-  border: 1.5px solid oklch(0.97 0.012 85 / 0.4);
+  border: 1.5px solid oklch(0.985 0.008 235 / 0.4);
   border-radius: 50%;
   animation: scroll-nudge 2.6s var(--ease-out) infinite;
   transition: border-color 200ms var(--ease-out);
 }
 
 .hero-scroll:hover .hero-scroll-dot {
-  border-color: var(--cream);
+  border-color: var(--snow);
 }
 
 @keyframes scroll-nudge {
@@ -757,14 +800,14 @@ section {
 
 .flavor-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 18px 40px oklch(0.28 0.04 48 / 0.14);
+  box-shadow: 0 18px 40px oklch(0.3 0.07 250 / 0.14);
 }
 
 .flavor-photo {
   position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
-  background: var(--cocoa-soft);
+  background: var(--placeholder);
 }
 
 .flavor-photo img {
@@ -786,10 +829,10 @@ section {
   background:
     radial-gradient(
       18rem 12rem at 70% 20%,
-      oklch(0.5 0.07 54 / 0.8),
+      oklch(0.6 0.1 238 / 0.8),
       transparent 70%
     ),
-    var(--cocoa);
+    var(--blue-drench);
 }
 
 .flavor-photo-new span {
@@ -947,7 +990,7 @@ section {
   background: var(--bg);
   border-radius: var(--radius);
   padding: clamp(1.25rem, 2.5vw, 1.8rem);
-  box-shadow: 0 16px 44px oklch(0.28 0.04 48 / 0.1);
+  box-shadow: 0 16px 44px oklch(0.3 0.07 250 / 0.1);
 }
 
 .build-count {
@@ -970,7 +1013,7 @@ section {
 .box-slot {
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
-  border: 2px dashed oklch(0.28 0.04 48 / 0.22);
+  border: 2px dashed oklch(0.3 0.07 250 / 0.22);
   display: grid;
   place-items: center;
   overflow: hidden;
@@ -999,7 +1042,7 @@ section {
   inset: 0;
   border: 0;
   padding: 0;
-  background: var(--cocoa);
+  background: var(--placeholder);
   animation: slot-pop 320ms var(--ease-out);
 }
 
@@ -1017,8 +1060,8 @@ section {
   inset-inline: 0;
   bottom: 0;
   padding: 1.1rem 0.5rem 0.4rem;
-  background: linear-gradient(transparent, oklch(0.16 0.04 45 / 0.92));
-  color: var(--cream);
+  background: linear-gradient(transparent, oklch(0.18 0.05 252 / 0.92));
+  color: var(--snow);
   font-size: 0.74rem;
   font-weight: 700;
   line-height: 1.2;
@@ -1044,8 +1087,8 @@ section {
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: oklch(0.16 0.04 45 / 0.72);
-  color: var(--cream);
+  background: oklch(0.18 0.05 252 / 0.72);
+  color: var(--snow);
   font-size: 0.95rem;
   line-height: 1;
   opacity: 0;
@@ -1059,7 +1102,7 @@ section {
 
 .slot-empty {
   font-family: var(--font-display);
-  color: oklch(0.28 0.04 48 / 0.28);
+  color: oklch(0.3 0.07 250 / 0.28);
   font-size: 1.25rem;
 }
 
@@ -1129,7 +1172,7 @@ section {
 .picker-item:hover:not(:disabled) {
   border-color: var(--blue);
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px oklch(0.28 0.04 48 / 0.1);
+  box-shadow: 0 6px 18px oklch(0.3 0.07 250 / 0.1);
 }
 
 .picker-item:disabled {
@@ -1147,7 +1190,7 @@ section {
   height: 2.2rem;
   border-radius: 999px;
   overflow: hidden;
-  background: var(--cocoa);
+  background: var(--placeholder);
 }
 
 .picker-thumb img {
@@ -1258,7 +1301,7 @@ section {
   object-fit: cover;
   object-position: center top;
   border-radius: var(--radius-sm);
-  box-shadow: 0 22px 50px oklch(0.28 0.04 48 / 0.22);
+  box-shadow: 0 22px 50px oklch(0.3 0.07 250 / 0.22);
 }
 
 .story-caption {
@@ -1321,8 +1364,8 @@ section {
 /* ---------- reviews ---------- */
 
 .reviews {
-  background: var(--cocoa-deep);
-  color: var(--cream);
+  background: var(--blue-drench);
+  color: var(--snow);
   padding-block: clamp(4.5rem, 9vw, 7.5rem);
 }
 
@@ -1355,7 +1398,7 @@ section {
 
 .review-card {
   margin: 0;
-  background: var(--cocoa);
+  background: var(--blue-raised);
   border-radius: var(--radius);
   padding: 1.5rem 1.6rem;
   display: flex;
@@ -1370,7 +1413,7 @@ section {
 
 .review-card blockquote p {
   line-height: 1.55;
-  color: var(--cream);
+  color: var(--snow);
 }
 
 /* ---------- events ---------- */
@@ -1401,14 +1444,14 @@ section {
   width: 5.2rem;
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
-  background: var(--cocoa-deep);
-  color: var(--cream);
+  background: var(--blue);
+  color: oklch(1 0 0);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
-  box-shadow: inset 0 -0.55rem 0 var(--cocoa-soft);
+  box-shadow: inset 0 -0.55rem 0 var(--blue-deep);
 }
 
 .event-month {
@@ -1416,7 +1459,7 @@ section {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--butter);
+  color: oklch(0.97 0.02 235); /* --blue-pale is 4.4:1 on --blue; this clears 4.5 */
 }
 
 .event-day {
@@ -1464,8 +1507,8 @@ section {
 /* ---------- corporate ---------- */
 
 .corporate {
-  background: var(--cocoa-deep);
-  color: var(--cream);
+  background: var(--blue-drench);
+  color: var(--snow);
   padding-block: clamp(4.5rem, 9vw, 7.5rem);
 }
 
@@ -1483,7 +1526,7 @@ section {
 
 .corporate-lede {
   margin-top: 1.2rem;
-  color: var(--cream-muted);
+  color: var(--snow-muted);
   font-size: 1.12rem;
   max-width: 52ch;
 }
@@ -1494,11 +1537,11 @@ section {
 
 .tier-row {
   padding-block: 1.3rem;
-  border-top: 1px solid oklch(0.97 0.012 85 / 0.16);
+  border-top: 1px solid oklch(0.985 0.008 235 / 0.16);
 }
 
 .tier-row:last-child {
-  border-bottom: 1px solid oklch(0.97 0.012 85 / 0.16);
+  border-bottom: 1px solid oklch(0.985 0.008 235 / 0.16);
 }
 
 .tier-head {
@@ -1526,7 +1569,7 @@ section {
 }
 
 .tier-blurb {
-  color: var(--cream-muted);
+  color: var(--snow-muted);
   margin-top: 0.4rem;
   max-width: 52ch;
 }
@@ -1540,7 +1583,7 @@ section {
 }
 
 .corporate-actions p {
-  color: var(--cream-muted);
+  color: var(--snow-muted);
   font-size: 0.92rem;
   max-width: 30ch;
 }
@@ -1555,26 +1598,51 @@ section {
   border-radius: var(--radius);
   aspect-ratio: 1;
   object-fit: cover;
-  box-shadow: 0 28px 60px oklch(0.08 0.025 48 / 0.5);
-}
-
-.corporate-photo figcaption {
-  margin-top: 0.9rem;
-  color: var(--cream-muted);
-  font-size: 0.92rem;
-  text-align: center;
+  box-shadow: 0 28px 60px oklch(0.16 0.06 248 / 0.5);
 }
 
 /* ---------- footer ---------- */
 
 .site-footer {
-  background: var(--cocoa-deepest);
-  color: var(--cream-muted);
+  background: var(--night-deep);
+  color: var(--snow-muted);
+}
+
+/* Mt. Shasta on the horizon: the footer's night-navy rises out of the page
+   as the mountain's silhouette (summit right of centre, Shastina's shoulder
+   beside it), snowcap on top — the same peak as the logo and hero photo.
+   Drawn with masks so both layers stay on the palette tokens. Sits in the
+   section above's bottom padding, so it never covers content. */
+.site-footer {
+  position: relative;
+}
+
+.site-footer::before,
+.site-footer::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: calc(100% - 1px);
+  /* must stay under .corporate's bottom padding, clamp(4.5rem, 9vw, 7.5rem) */
+  height: clamp(3.1rem, 7.8vw, 7.2rem);
+  -webkit-mask: var(--ridge-shape) center bottom / 100% 100% no-repeat;
+  mask: var(--ridge-shape) center bottom / 100% 100% no-repeat;
+  pointer-events: none;
+}
+
+.site-footer::before {
+  --ridge-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 100' preserveAspectRatio='none'%3E%3Cpath d='M0 100V81.7C120 75 240 78.3 360 71.7C470 65 560 70 660 63.3L760 58.3L860 39.6Q880 34.9 900 38.4L930 41.9L1010 6.7Q1022 2 1034 7.9L1120 44.2L1200 60C1280 66.7 1360 65 1440 70V100Z'/%3E%3C/svg%3E");
+  background: var(--night-deep);
+}
+
+.site-footer::after {
+  --ridge-shape: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 100' preserveAspectRatio='none'%3E%3Cpath d='M958 30.2L1010 6.7Q1022 2 1034 7.9L1082 29L1066 25.5L1052 33.7L1038 24.3L1024 34.9L1008 25.5L992 34.9L978 27.8Z'/%3E%3C/svg%3E");
+  background: var(--snow);
 }
 
 .footer-grid {
   display: grid;
-  grid-template-columns: 1.3fr 0.7fr 0.9fr 1.1fr;
+  grid-template-columns: 1.4fr 0.8fr 1fr;
   gap: clamp(2rem, 4vw, 3.5rem);
   padding-block: clamp(3rem, 6vw, 4.5rem) 2.5rem;
 }
@@ -1599,21 +1667,21 @@ section {
 }
 
 .footer-social a {
-  color: var(--cream);
+  color: var(--snow);
   display: grid;
   place-items: center;
   width: 2.4rem;
   height: 2.4rem;
   border-radius: 999px;
-  border: 1.5px solid oklch(0.97 0.012 85 / 0.25);
+  border: 1.5px solid oklch(0.985 0.008 235 / 0.25);
   transition:
     border-color 160ms var(--ease-out),
     background-color 160ms var(--ease-out);
 }
 
 .footer-social a:hover {
-  border-color: var(--butter);
-  background: oklch(0.97 0.012 85 / 0.07);
+  border-color: var(--sky);
+  background: oklch(0.985 0.008 235 / 0.07);
 }
 
 .site-footer h3 {
@@ -1622,7 +1690,7 @@ section {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--cream);
+  color: var(--sky-light);
   margin-bottom: 1rem;
 }
 
@@ -1634,7 +1702,7 @@ section {
 
 .footer-nav a,
 .footer-contact a {
-  color: var(--cream-muted);
+  color: var(--snow-muted);
   text-decoration: none;
   font-size: 0.97rem;
   width: fit-content;
@@ -1642,12 +1710,12 @@ section {
 
 .footer-nav a:hover,
 .footer-contact a:hover {
-  color: var(--butter);
+  color: var(--sky-light);
 }
 
 .footer-contact a {
   font-weight: 700;
-  color: var(--cream);
+  color: var(--snow);
 }
 
 .footer-contact p {
@@ -1656,54 +1724,18 @@ section {
   max-width: 30ch;
 }
 
-.footer-news form {
-  display: flex;
-  gap: 0.55rem;
-}
-
-.footer-news input {
-  flex: 1;
-  min-width: 0;
-  font: inherit;
-  font-size: 0.95rem;
-  padding: 0.65rem 1rem;
-  border-radius: 999px;
-  border: 1.5px solid oklch(0.97 0.012 85 / 0.3);
-  background: oklch(0.97 0.012 85 / 0.06);
-  color: var(--cream);
-}
-
-.footer-news input::placeholder {
-  color: oklch(0.74 0.04 78);
-}
-
-.footer-news input:focus {
-  outline: none;
-  border-color: var(--butter);
-}
-
-.footer-news-done {
-  color: var(--cream);
-  font-weight: 600;
-}
-
-.footer-fine {
-  margin-top: 0.8rem;
-  font-size: 0.82rem;
-}
-
 .footer-base {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
   padding-block: 1.4rem;
-  border-top: 1px solid oklch(0.97 0.012 85 / 0.12);
+  border-top: 1px solid oklch(0.985 0.008 235 / 0.12);
   font-size: 0.88rem;
 }
 
 .footer-base a {
-  color: var(--cream);
+  color: var(--snow);
 }
 
 /* ---------- box pill ---------- */
@@ -1716,15 +1748,15 @@ section {
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  background: var(--cocoa-deepest);
-  color: var(--cream);
+  background: var(--night-deep);
+  color: var(--snow);
   text-decoration: none;
   font-weight: 700;
   font-size: 0.92rem;
   padding: 0.7rem 1.2rem 0.7rem 0.95rem;
   border-radius: 999px;
-  box-shadow: 0 14px 40px oklch(0.08 0.025 48 / 0.5);
-  border: 1.5px solid oklch(0.97 0.012 85 / 0.15);
+  box-shadow: 0 14px 40px oklch(0.12 0.05 252 / 0.5);
+  border: 1.5px solid oklch(0.985 0.008 235 / 0.15);
   transition: transform 200ms var(--ease-out);
 }
 
@@ -1758,7 +1790,7 @@ section {
   width: 9px;
   height: 9px;
   border-radius: 2.5px;
-  background: oklch(0.97 0.012 85 / 0.2);
+  background: oklch(0.985 0.008 235 / 0.2);
   transition: background-color 200ms var(--ease-out);
 }
 
@@ -1781,7 +1813,7 @@ section {
 }
 
 .overlay::backdrop {
-  background: oklch(var(--scrim) / 0.55);
+  background: oklch(0.17 0.05 252 / 0.55); /* navy dim behind dialogs */
 }
 
 .overlay[open]::backdrop {
@@ -1854,13 +1886,13 @@ section {
   animation: overlay-fade 200ms ease-in reverse forwards;
 }
 
-/* the drawer: cocoa head, scrolling lines, pinned totals */
+/* the drawer: navy head, scrolling lines, pinned totals */
 .cart {
   height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--surface);
-  box-shadow: -24px 0 60px oklch(0.1 0.025 48 / 0.35);
+  box-shadow: -24px 0 60px oklch(0.15 0.05 252 / 0.35);
 }
 
 .cart-head {
@@ -1869,8 +1901,8 @@ section {
   justify-content: space-between;
   gap: 1rem;
   padding: 1.05rem 1.2rem 1.05rem 1.5rem;
-  background: var(--cocoa-deep);
-  color: var(--cream);
+  background: var(--night);
+  color: var(--snow);
 }
 
 .cart-head h2 {
@@ -1888,14 +1920,14 @@ section {
   width: 2.5rem;
   height: 2.5rem;
   border-radius: 999px;
-  border: 1.5px solid oklch(0.97 0.012 85 / 0.35);
+  border: 1.5px solid oklch(0.985 0.008 235 / 0.35);
   background: none;
-  color: var(--cream);
+  color: var(--snow);
   transition: border-color 160ms var(--ease-out);
 }
 
 .cart-close:hover {
-  border-color: var(--cream);
+  border-color: var(--snow);
 }
 
 .cart-body {
@@ -1921,7 +1953,7 @@ section {
   aspect-ratio: 1;
   border-radius: var(--radius-sm);
   overflow: hidden;
-  background: var(--cocoa);
+  background: var(--placeholder);
 }
 
 .cart-line-media img {
@@ -1931,7 +1963,7 @@ section {
   object-position: var(--focal, 50% 50%);
 }
 
-/* a finished box reads as a tiny box: six squares in a cocoa tray */
+/* a finished box reads as a tiny box: six squares in a navy tray */
 .cart-box-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1939,7 +1971,7 @@ section {
   gap: 2px;
   height: 100%;
   padding: 0.55rem 3px;
-  background: var(--cocoa-deep);
+  background: var(--night);
 }
 
 .cart-box-grid img,
@@ -1951,7 +1983,7 @@ section {
   display: block;
   width: 100%;
   height: 100%;
-  background: var(--cocoa-soft);
+  background: var(--placeholder);
 }
 
 .cart-line-head {
@@ -2040,7 +2072,7 @@ section {
 }
 
 .qty button:disabled {
-  color: oklch(0.78 0.03 75);
+  color: oklch(0.72 0.03 240);
   cursor: not-allowed;
 }
 
@@ -2127,8 +2159,8 @@ section {
   margin-top: 1rem;
   padding: 1rem 1.1rem 1.05rem;
   border-radius: var(--radius-sm);
-  background: var(--cocoa-deep);
-  color: var(--cream-muted);
+  background: var(--night);
+  color: var(--snow-muted);
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -2146,7 +2178,7 @@ section {
 .cart-season a {
   display: inline-block;
   margin-top: 0.6rem;
-  color: var(--cream);
+  color: var(--snow);
   font-weight: 700;
 }
 
@@ -2182,7 +2214,7 @@ section {
   border-radius: var(--radius);
   background: var(--surface);
   text-align: center;
-  box-shadow: 0 30px 80px oklch(0.1 0.025 48 / 0.45);
+  box-shadow: 0 30px 80px oklch(0.15 0.05 252 / 0.45);
 }
 
 .order-placed img {
@@ -2210,7 +2242,7 @@ section {
   padding: clamp(1.6rem, 4vw, 2.2rem);
   border-radius: var(--radius);
   background: var(--surface);
-  box-shadow: 0 30px 80px oklch(0.1 0.025 48 / 0.45);
+  box-shadow: 0 30px 80px oklch(0.15 0.05 252 / 0.45);
   max-height: min(88dvh, 44rem);
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -2394,7 +2426,7 @@ section {
 }
 
 .footer-quote:hover {
-  color: var(--cream);
+  color: var(--snow);
 }
 
 /* ---------- responsive ---------- */
@@ -2430,7 +2462,7 @@ section {
     inset: 0;
     top: 0;
     padding: 6rem clamp(1.5rem, 6vw, 3rem) 3rem;
-    background: var(--cocoa-deep);
+    background: var(--surface);
     z-index: 1;
     opacity: 0;
     visibility: hidden;
@@ -2452,7 +2484,7 @@ section {
   }
 
   .mobile-menu nav a {
-    color: var(--cream);
+    color: var(--ink);
     text-decoration: none;
     font-family: var(--font-display);
     font-size: clamp(1.7rem, 6vw, 2.3rem);
@@ -2470,7 +2502,7 @@ section {
   }
 
   .mobile-menu nav a:hover {
-    color: var(--butter);
+    color: var(--blue-deep);
   }
 
   .mobile-menu .btn {
@@ -2530,6 +2562,11 @@ section {
 
   .footer-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* three blocks on a two-column grid: the brand takes the top row */
+  .footer-brand {
+    grid-column: 1 / -1;
   }
 }
 

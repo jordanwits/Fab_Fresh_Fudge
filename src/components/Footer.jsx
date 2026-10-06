@@ -1,16 +1,6 @@
-import { useState } from 'react'
 import { CONTACT } from '../data/site.js'
 
 export default function Footer({ season, onRequestQuote }) {
-  const [email, setEmail] = useState('')
-  const [done, setDone] = useState(false)
-
-  const submit = (e) => {
-    e.preventDefault()
-    if (!email.trim()) return
-    setDone(true)
-  }
-
   return (
     <footer className="site-footer">
       <div className="container footer-grid">
@@ -78,33 +68,6 @@ export default function Footer({ season, onRequestQuote }) {
               Ask about summer shipping
             </button>
           )}
-        </div>
-
-        <div className="footer-news">
-          <h3>First dibs on new flavors</h3>
-          {done ? (
-            <p className="footer-news-done">
-              You’re on the list. Sweet things coming your way.
-            </p>
-          ) : (
-            <form onSubmit={submit}>
-              <label htmlFor="newsletter-email" className="visually-hidden">
-                Email address
-              </label>
-              <input
-                id="newsletter-email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-              <button className="btn btn-primary" type="submit">
-                Join
-              </button>
-            </form>
-          )}
-          <p className="footer-fine">One email a month. No fudge spam, promise.</p>
         </div>
       </div>
 

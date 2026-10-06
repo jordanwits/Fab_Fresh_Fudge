@@ -48,7 +48,7 @@ export default function Hero() {
         </div>
 
         <a className="hero-scroll" href="#shop">
-          <span className="hero-scroll-label">Cut fresh, every morning</span>
+          <span className="hero-scroll-label">Cut fresh, every batch</span>
           <span className="hero-scroll-dot" aria-hidden="true">
             <svg viewBox="0 0 16 16" width="13" height="13">
               <path

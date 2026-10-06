@@ -56,9 +56,6 @@ export default function Corporate() {
             width="900"
             height="900"
           />
-          <figcaption>
-            Your logo, our fudge: a gift nobody regifts.
-          </figcaption>
         </figure>
       </div>
     </section>

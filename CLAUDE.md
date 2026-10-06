@@ -92,10 +92,20 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
 
 ## Conventions / gotchas
 
-- Palette is COMMITTED to client swatches (all authored in OKLCH): Vanilla #FFF6E6, Buttercream
-  #F3D9A4, Milk Chocolate #7A4A2A, Dark Cocoa #3D2418, Fresh Blue #2B99D1. Filled buttons/links use a
-  deepened `--blue` because literal Fresh Blue fails white-text AA; the literal swatch lives in `--sky`
-  (marquee band, dark text). Don't reintroduce the earlier pistachio or navy palettes.
+- Palette is "Mt. Shasta alpine" BLUE (2026-10-06): the client asked to lean into blue and okayed
+  dropping brown, so the UI has no cocoa/cream at all — night-navy ink and footer, ice-blue
+  `--surface` (cards, Build a Box, scrolled header, phone menu, drawers), a deep Fresh Blue drench on
+  Reviews + Corporate (`--blue-drench`: the client rejected a much lighter #85C6E9, then asked for
+  a touch softer/less vibrant — now oklch(0.46 0.085 243). It still carries snow text, and
+  `--snow-muted` is down to 4.6:1 on it, so it can't get much lighter), and Buttercream #F3D9A4 as the ONE warm accent (stars, badges, prices and the
+  quote button on blue). The fudge photos supply the chocolate. Filled buttons/links use a deepened
+  `--blue` because literal Fresh Blue #2B99D1 fails white-text AA; the literal swatch lives in
+  `--sky` and `--sky-light` is the lifted blue for small text on navy. The header is transparent
+  over the hero and ice once scrolled; `Header.jsx` adds `is-menu-open` so its text flips to navy
+  while the phone menu is open even at the top of the page. The footer's Mt. Shasta ridge is two
+  masked pseudo-elements (`.site-footer::before/::after`) sitting in Corporate's bottom padding —
+  shrink that padding and the ridge will overlap content. The admin dashboard has its own palette
+  in `admin.css` and was NOT changed. Don't reintroduce the earlier pistachio palette.
 - Client hard constraints: clean but never empty (no big white space), no clutter, no flowery/script
   fonts, lean nav, no clashing brights.
 - Naming is unresolved: the logo reads "Fab Fresh Fudge" but site title/copy still says "Fabulous Fudge".
