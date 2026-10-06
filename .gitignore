@@ -21,6 +21,7 @@ Thumbs.db
 
 # Claude Code tooling bundle, not site source
 .claude/skills/
+.claude/agents/
 
 # stray backup of a tracked file
 *.bak
