@@ -1,0 +1,30 @@
+rules_version = '2';
+
+// Fab Fresh Fudge -- uploaded flavor photos.
+//
+// NOT LIVE YET: Cloud Storage needs the Blaze plan. Once the bucket exists,
+// paste this into Firebase console -> Storage -> Rules and Publish (the console
+// will ask to let Storage rules read Firestore; allow it, isAdmin() needs it).
+//
+// Anyone may view the photos (the site shows them). Only admins -- the same
+// admins/{uid} list Firestore uses -- may upload, and only images. The
+// dashboard downscales to 1400px JPEG before uploading, so a real upload is a
+// few hundred KB; the 5 MB cap only stops abuse.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+
+    match /flavors/{file} {
+      allow read: if true;
+      allow create: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+  }
+}

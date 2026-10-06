@@ -154,13 +154,15 @@ export default function PricingScreen() {
         </LoadingRegion>
       ) : (
         <div className="pricing">
-          {backend.isMock ? (
+          {!backend.feedsSite ? (
             <p className="pricing-notice">
               <Icon name="alert" size={16} />
               <span>
                 <strong>Not connected to the website yet.</strong> The site still charges the
-                prices built into it. Saving here stores your numbers in this browser; they
-                start driving the site when the database is connected.
+                prices built into it.{' '}
+                {backend.isMock
+                  ? 'Saving here stores your numbers in this browser; they start driving the site when the database is connected.'
+                  : 'Saving here stores your numbers in the database; they start driving the site once it reads from there.'}
               </span>
             </p>
           ) : null}
@@ -242,10 +244,14 @@ export default function PricingScreen() {
       <ConfirmDialog
         open={confirming}
         tone="warning"
-        title="Change what customers pay?"
+        title={backend.feedsSite ? 'Change what customers pay?' : 'Save these prices?'}
         body={
           <>
-            <p>From now on the website will charge:</p>
+            <p>
+              {backend.feedsSite
+                ? 'From now on the website will charge:'
+                : 'These will be stored, ready for when the website reads them:'}
+            </p>
             <ul className="pricing-confirm">
               <li>
                 One square <strong>{money(parsed.squarePrice)}</strong>

@@ -1,17 +1,19 @@
 /**
  * Client-side downscale for uploaded flavor photos.
  *
- * The mock backend keeps uploads in localStorage as data URLs, and a 4000x3000
- * camera JPEG blows the ~5 MB quota on the first try. Downscaling to the size
- * the site actually renders keeps a demo session workable. A real adapter
- * uploads the original File to storage and deletes this step -- the resize
- * belongs in a build/CDN pipeline, not the browser.
+ * A phone or camera JPEG is 4000px and several MB -- roughly four times what
+ * the site can ever display (`.flavor-photo` tops out near 350 CSS px). So
+ * every upload is redrawn smaller in the browser before it goes anywhere:
  *
- * 1400px matches the compression the shipped flavor photos already use, but the
- * mock stores base64 in a 5 MB bucket, so it settles for 1000px instead.
+ *   - downscaleToBlob     -> the Firebase adapter uploads this to Storage, at
+ *                            1400px to match the compression the shipped
+ *                            flavor photos already use
+ *   - downscaleToDataURL  -> the mock keeps base64 in a ~5 MB localStorage
+ *                            bucket, so it settles for 1000px
  */
 
 const MAX_EDGE = 1000
+const STORAGE_MAX_EDGE = 1400
 const QUALITY = 0.8
 
 export const MAX_UPLOAD_BYTES = 12 * 1024 * 1024
@@ -20,8 +22,8 @@ export function isSupportedImage(file) {
   return /^image\/(jpeg|png|webp|avif)$/i.test(file?.type || '')
 }
 
-/** Read a File into a data URL, downscaled so the long edge is <= MAX_EDGE. */
-export function downscaleToDataURL(file) {
+/** Decode a File and redraw it onto a canvas whose long edge is <= maxEdge. */
+function drawScaled(file, maxEdge) {
   return new Promise((resolve, reject) => {
     const url = URL.createObjectURL(file)
     const img = new Image()
@@ -29,7 +31,7 @@ export function downscaleToDataURL(file) {
     img.onload = () => {
       URL.revokeObjectURL(url)
       try {
-        const scale = Math.min(1, MAX_EDGE / Math.max(img.naturalWidth, img.naturalHeight))
+        const scale = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight))
         const w = Math.max(1, Math.round(img.naturalWidth * scale))
         const h = Math.max(1, Math.round(img.naturalHeight * scale))
 
@@ -42,8 +44,7 @@ export function downscaleToDataURL(file) {
         ctx.fillStyle = '#ffffff'
         ctx.fillRect(0, 0, w, h)
         ctx.drawImage(img, 0, 0, w, h)
-
-        resolve({ url: canvas.toDataURL('image/jpeg', QUALITY), width: w, height: h })
+        resolve(canvas)
       } catch (err) {
         reject(err)
       }
@@ -58,6 +59,29 @@ export function downscaleToDataURL(file) {
     // copy comes out the right way up -- the same bake-in the shipped photos got.
     img.src = url
   })
+}
+
+/** Read a File into a data URL, downscaled so the long edge is <= MAX_EDGE. */
+export async function downscaleToDataURL(file) {
+  const canvas = await drawScaled(file, MAX_EDGE)
+  return {
+    url: canvas.toDataURL('image/jpeg', QUALITY),
+    width: canvas.width,
+    height: canvas.height,
+  }
+}
+
+/** Read a File into a JPEG Blob, long edge <= STORAGE_MAX_EDGE, for uploading. */
+export async function downscaleToBlob(file) {
+  const canvas = await drawScaled(file, STORAGE_MAX_EDGE)
+  const blob = await new Promise((resolve, reject) =>
+    canvas.toBlob(
+      (b) => (b ? resolve(b) : reject(new Error("That photo couldn't be prepared."))),
+      'image/jpeg',
+      QUALITY
+    )
+  )
+  return { blob, width: canvas.width, height: canvas.height }
 }
 
 /** '2.4 MB' */

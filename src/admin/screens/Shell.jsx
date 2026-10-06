@@ -105,6 +105,17 @@ function RailBody({ route, counts, onNavigate, onSignOut, onReset, user, resetti
               </button>
             ) : null}
           </div>
+        ) : !backend.feedsSite ? (
+          <div className="rail__notice">
+            <p className="rail__notice-title">
+              <Icon name="alert" size={14} />
+              Not on the website yet
+            </p>
+            <p className="rail__notice-body">
+              Edits are saved to the database, but the public site still shows its built-in
+              content until it is connected.
+            </p>
+          </div>
         ) : null}
 
         <div className="rail__user">

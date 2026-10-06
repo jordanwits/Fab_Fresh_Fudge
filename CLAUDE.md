@@ -47,11 +47,15 @@ in both; this repo keeps the original "corner fudge shop" design.
   so the URL is a real file on any static host — no SPA rewrite rule needed — and the
   marketing bundle never ships admin code. Inside `/admin/`, sections ride on the hash
   (`/admin/#/events`) for the same reason. Structure:
-  - `backend/adapter.js` — THE SEAM. Every screen talks to `backend` and nothing else;
-    swapping in Firebase or Supabase means writing one sibling file and changing one
-    import. The contract and sketches for both providers are documented in that file.
-  - `backend/localAdapter.js` — the current implementation: localStorage, seeded from
-    `src/data/`, with deliberate latency so loading/error states are real code paths
+  - `backend/adapter.js` — THE SEAM. Every screen talks to `backend` and nothing else.
+    The contract is documented there. It picks `firebaseAdapter` when
+    `VITE_FIREBASE_API_KEY` is set, else `localAdapter`
+  - `backend/firebaseAdapter.js` — the real backend (2026-10-06): Firebase Auth +
+    Firestore (+ Storage once on Blaze). Its header documents the collection layout
+  - `backend/localAdapter.js` — the sample-data demo: localStorage, with deliberate
+    latency so loading/error states are real code paths. Still used by Vercel previews
+    and any checkout without Firebase env vars
+  - `backend/seed.js` — starting content built from `src/data/`, shared by both adapters
   - `state/` — AuthContext (session gate), DataContext (all CRUD), ToastContext
   - `ui/` — the shared vocabulary: Button, Field, Dialog (native `<dialog>`), Drawer,
     ConfirmDialog, Toaster, Icon (one hand-rolled SVG set), States (empty/error/skeleton)
@@ -159,8 +163,8 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   receipt printers).
 - No sales tax is added anywhere. If the client needs tax, add it to the order in
   `buildPaymentLinkRequest`, and the drawer's totals will need the same number.
-- The admin dashboard's stock/flavor edits still live in its localStorage only; checkout reads the
-  static `flavors.js` bundled at deploy time. Wiring the admin backend must also feed the server.
+- The admin dashboard's stock/flavor edits live in Firestore and reach nothing else; checkout reads
+  the static `flavors.js` bundled at deploy time. Connecting the site must also feed the server.
 - Season is decided on `America/Los_Angeles` time. The browser evaluates it at BUILD time for
   `VITE_CHECKOUT_SEASON`, the function at request time, so changing that variable needs a redeploy.
   In September you must set it to `open` to test checkout at all.
@@ -192,14 +196,39 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   visually hidden; between 1021 and 1100px the nav/header gaps tighten, or the nav links wrap.
 ### Admin dashboard gotchas
 
-- The dashboard is UI-only. `localAdapter` sign-in compares strings in the browser, so it
-  is a stub, NOT security — anyone can read the credentials in the bundle or edit
-  localStorage directly. Real access control has to be enforced server-side (Supabase RLS
-  or Firebase security rules) before `/admin/` is exposed to the internet.
-- Demo sign-in: `owner@fabfreshfudge.com` / `fudge2026`, shown on the login screen behind
-  `backend.isMock` so it disappears the moment a real adapter is wired in.
-- Edits persist in localStorage under `fff-admin/v1` and reach nothing else. The public
-  site still reads its static `src/data/` modules — connecting the two is the backend job.
+- FIREBASE (wired 2026-10-06). Project `fab-fresh-site` ("Fab Fresh site"), owned by the
+  client's Google account; Jordan is a project Owner. Spark (free) plan. Firestore is
+  Standard edition in `us-west1` (permanent). Web app "Fab Fresh Fudge Website". Config is
+  the `VITE_FIREBASE_*` vars (`.env.example`) — public by design. Locally they live in
+  `.env.local`; Vercel Production needs the same six; Preview deliberately has none, so
+  previews run the sample-data demo and can't touch real data.
+- SECURITY IS `firestore.rules` (and `storage.rules`), published in the console — the
+  adapter's checks are courtesy only. Public read on flavors/events/packages/pricing;
+  writes only for uids with a doc in `admins/{uid}` (`{ email, name }`), which only the
+  console can write. Verified 2026-10-06 with anonymous REST calls (read 200, every write
+  403). Edit the repo file first, then paste it into Firestore -> Rules and Publish; the
+  editor is CodeMirror 6 and can be filled via `.cm-content`.cmView.view.dispatch.
+- Logins are FIXED and made by hand: Authentication -> Users -> Add user, then a matching
+  `admins/{uid}` doc. Self sign-up is OFF in Auth settings (User actions), and the
+  dashboard has no sign-up or forgot-password flow — Jordan's call: it's an internal tool.
+  A login missing from `admins/` is signed straight back out ("doesn't have access").
+  As of 2026-10-06 only Jordan's login exists; the client's is pending her password choice.
+- First admin sign-in IMPORTS `seed.js` into Firestore once, inside a transaction keyed on
+  `settings/meta` — the marker, not an empty collection, decides, so deleting every
+  flavor on purpose doesn't bring them back. Done 2026-10-06.
+- Lists are sorted in JS by `sortOrder`, not `orderBy()`: Firestore's orderBy silently
+  drops docs missing the field, so a doc added by hand in the console would vanish.
+  `ignoreUndefinedProperties` is on because editors hand over drafts with undefined fields.
+- Pricing rules accept cents with a tolerance (`7.95 * 100` isn't exactly 795 in floating
+  point); verified by saving $7.95 and back.
+- Demo sign-in (sample-data mode only): `owner@fabfreshfudge.com` / `fudge2026`, shown
+  behind `backend.isMock`. The adapter choice is a bare `import.meta.env` test so Rollup
+  drops the unused adapter — a Firebase build does NOT contain these credentials (checked
+  by grepping `dist/`). The demo's edits live in localStorage `fff-admin/v1`.
+- The public site still reads its static `src/data/` modules, not Firestore.
+  `backend.feedsSite` is false, which shows "Not on the website yet" in the sidebar and
+  on the Pricing screen. Connecting them is the open "publish on save vs live reads"
+  decision.
 - A flavor's `id` is write-once: generated from the name on create, locked afterwards.
   It is surfaced as "Reference ID", NOT as a web address — the site is one page with
   anchor nav, so no per-flavor URL exists and calling it one misleads.
@@ -211,7 +240,7 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   rather than using `new Date('YYYY-MM-DD')`, which parses as UTC and lands a day early
   in California.
 - The four seeded events carry no year in `site.js` and the site calls them "upcoming",
-  so `localAdapter` seeds them into 2027. Nothing lands in the Past group until the
+  so `seed.js` puts them in 2027. Nothing lands in the Past group until the
   client enters their real schedule.
 - Flavor order is changed by dragging a row's grip handle (`lib/useDragSort.js`),
   hand-rolled on pointer events rather than pulling in dnd-kit for one list. Drag is
@@ -255,9 +284,13 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
 - Overlay scroll-lock is reference-counted in `ui/Dialog.jsx`. It has to be: the delete
   confirm opens on top of the editor drawer, and per-instance save/restore stranded
   `<html>` at `overflow: hidden` with no dialog open, depending on teardown order.
-- Uploaded photos are downscaled to 1000px in-browser and stored as base64 data URLs,
-  purely to survive the ~5 MB localStorage budget. A real adapter uploads the original
-  File to storage and `lib/image.js` goes away.
+- Uploaded photos are downscaled in-browser (`lib/image.js`): to a 1400px JPEG Blob for
+  Firebase Storage (matching the shipped photos; camera files are ~4x what the site can
+  show), or to a 1000px data URL for the demo's ~5 MB localStorage. Storage needs the Blaze
+  plan, so `VITE_FIREBASE_STORAGE_BUCKET` stays BLANK until it's on; while blank, upload
+  says "not switched on yet" immediately instead of retrying against a missing bucket.
+  Turning it on: Blaze, create the bucket in `us-west1` (free-tier region), publish
+  `storage.rules` (allow its Firestore access), set the bucket var locally and on Vercel.
 - The Corporate Gifts screen (added 2026-09-08) edits `CORPORATE_TIERS` — the gift
   package ladder in `src/components/Corporate.jsx`. Records are
   `{ id, name, size, blurb, price }`; `size` and `price` stay FREE TEXT ("from $42")
@@ -284,7 +317,7 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   call a perfectly good record missing.
 - The Pricing screen (added 2026-09-28) edits `{ squarePrice, boxPrice, shippingFee }` —
   plain dollars, matching `SQUARE_PRICE`/`BOX_PRICE` in `flavors.js` and `SHIPPING_FEE` in
-  `checkout.js`. It is UI ONLY and says so on screen while `backend.isMock`: the site and
+  `checkout.js`. It saves to Firestore but says on screen (while `!backend.feedsSite`) that the site and
   `server/checkout.js` still read the constants compiled into `src/data/`, so saving here
   changes no price a customer pays. Finishing it means three things landing together —
   `cart.js` taking prices as input, the checkout function reading the same stored record at

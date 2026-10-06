@@ -17,6 +17,9 @@
  *
  * backend.label            string   shown in the sidebar footer, e.g. "Sample data"
  * backend.isMock           boolean  drives the "not a real backend" notice
+ * backend.feedsSite        boolean  false while the public site still reads
+ *                                   src/data/ -- drives the "not on the
+ *                                   website yet" notices
  *
  * backend.auth
  *   getSession()                 -> Promise<Session|null>   restore on load
@@ -115,17 +118,11 @@
  *   Lock it down with RLS: public SELECT, writes restricted to authenticated
  *   users in an `admins` table.
  *
- * FIREBASE — create `firebaseAdapter.js`:
- *
- *   import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
- *   import { getFirestore, collection, getDocs, addDoc, ... } from 'firebase/firestore'
- *   import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage'
- *
- *   flavors.list -> getDocs(query(collection(db,'flavors'), orderBy('sortOrder')))
- *   media.upload -> uploadBytes(ref(storage, path), file).then(getDownloadURL)
- *
- *   Lock it down with security rules: public read, writes only for uids
- *   carrying an `admin` custom claim.
+ * FIREBASE — DONE (2026-10-06): `firebaseAdapter.js`, project `fab-fresh-site`.
+ *   Its header documents the Firestore layout. Security is firestore.rules /
+ *   storage.rules at the repo root: public read, writes only for uids listed
+ *   in `admins/{uid}` (an allowlist doc rather than a custom claim, so admins
+ *   are managed in the console with no Admin SDK script).
  *
  * PRICING, WHEN THE BACKEND IS REAL
  *
@@ -144,15 +141,18 @@
  * EITHER WAY, READ THIS: the mock adapter's sign-in is a UI stub, not security.
  * It compares strings in the browser, so anyone can read the credentials in the
  * bundle and anyone can edit localStorage directly. Nothing here protects data.
- * Real access control has to be enforced server-side by the rules above before
- * this dashboard is exposed to the internet.
+ * With Firebase, the protection is the published rules, never the adapter.
  */
 
 import { localAdapter } from './localAdapter.js'
+import { firebaseAdapter } from './firebaseAdapter.js'
 
 export { AuthError, DataError } from './errors.js'
 
-// --- Swap this line to go live. -------------------------------------------
-// import { supabaseAdapter } from './supabaseAdapter.js'
-// export const backend = supabaseAdapter
-export const backend = localAdapter
+// --- Which backend --------------------------------------------------------
+// Firebase whenever VITE_FIREBASE_* is set (production, and local dev with a
+// filled-in .env.local); the sample-data mock otherwise (Vercel previews, a
+// fresh clone). Vite inlines the env at build time, so the unused adapter is
+// dropped from the bundle -- the demo credentials don't ship to production.
+// Keep the test a bare import.meta.env read: that is what Rollup can fold.
+export const backend = import.meta.env.VITE_FIREBASE_API_KEY ? firebaseAdapter : localAdapter
