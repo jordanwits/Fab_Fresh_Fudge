@@ -42,16 +42,24 @@ export function PublishProvider({ children }) {
     poll.current = null
   }
 
-  /** Compare the last save with the live build and settle on clean or dirty. */
-  const check = useCallback(async () => {
+  /**
+   * Compare the last save with the live build and settle on clean or dirty.
+   * `knownLiveAt` skips refetching the build stamp: right after a publish
+   * lands, a second fetch can still catch the deploy mid-swap and read the
+   * old file (or fail), which once flipped a finished publish straight back
+   * to "Unpublished changes". If either side can't be read, leave the status
+   * alone rather than guess.
+   */
+  const check = useCallback(async (knownLiveAt) => {
     if (!api) return
     const [lastEditAt, live] = await Promise.all([
-      api.lastEditAt().catch(() => null),
-      api.liveVersion().catch(() => null),
+      api.lastEditAt().catch(() => undefined),
+      knownLiveAt ? { builtAt: knownLiveAt } : api.liveVersion().catch(() => undefined),
     ])
-    const liveAt = live?.builtAt ?? null
+    if (lastEditAt === undefined || !live?.builtAt) return
+    const liveAt = live.builtAt
     // Both are ISO strings from server clocks, so they compare as text.
-    const dirty = Boolean(lastEditAt && (!liveAt || lastEditAt > liveAt))
+    const dirty = Boolean(lastEditAt && lastEditAt > liveAt)
     setStatus((s) => (isBusy(s.state) ? s : { state: dirty ? 'dirty' : 'clean', liveAt }))
   }, [api])
 
@@ -64,7 +72,7 @@ export function PublishProvider({ children }) {
           const live = await api.liveVersion()
           if (live?.builtAt && live.builtAt >= requestedAt) {
             setStatus({ state: 'clean', liveAt: live.builtAt })
-            check() // anything saved while it was building?
+            check(live.builtAt) // anything saved while it was building?
             return
           }
         } catch {

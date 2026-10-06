@@ -182,6 +182,13 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   polls `/content-version.json` until `builtAt` passes the request → "Website is up to
   date", then re-checks in case something was saved mid-build. Measured live: ~1.5 min.
   Re-checks on load and when the tab becomes visible. Hobby allows 100 deployments/day.
+- ANY deploy publishes: a git push runs the same snapshot step, so it puts whatever is in
+  Firestore at that moment on the site, including a batch she hasn't published yet. Check
+  the dashboard for "Unpublished changes" before pushing code mid-week. (Building from a
+  copy taken at publish time would fix it; not done.)
+- After a publish lands, the status re-check reuses the build time it already saw: a second
+  fetch of `/content-version.json` mid-swap once read stale/failed and flipped a finished
+  publish back to "Unpublished changes". A check that can't read either side changes nothing.
 - Without `DEPLOY_HOOK_URL` (local dev) `/api/publish` answers 503 `not_configured` and the
   sidebar says "Publishing is off here". Keep it out of `.env.local`: dev uses the REAL
   Firestore, so local edits are real edits (and stamp `settings/edits`, so the LIVE
