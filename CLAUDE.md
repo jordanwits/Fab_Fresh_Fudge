@@ -168,17 +168,26 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   it publishes the built-in content (`seed.js`). A PRODUCTION build (`VERCEL_ENV=production`)
   that can't read Firestore exits 1, so the last good deploy stays live. It must only use
   PUBLIC-read docs: `settings/meta` is admin-only, and checking it 403'd every build.
-- Saving in the dashboard → `PublishContext` waits for a 30 s pause in saves (or the page
-  being hidden/closed, via a keepalive fetch; a localStorage flag retries on the next visit)
-  → `POST /api/publish` with her ID token → `server/publish.js` proves she's an admin by
+- PUBLISHING IS A BUTTON (Jordan, 2026-10-06), not automatic: a batch of edits must go
+  live in one piece, not half-way through. (A first version auto-published 30 s after the
+  last save; it was replaced the same day.) Saving only changes Firestore; every save also
+  stamps `settings/edits.lastEditAt` (admin-only doc). "Unpublished changes" =
+  `lastEditAt` newer than the live `/content-version.json` `builtAt` -- decided from the
+  server, so it shows on any device and for either login, and survives sign-out.
+- Sidebar: "Unpublished changes" + a full-width "Publish changes" button; on phones the
+  top-bar pill IS a "Publish" button (she updates stock at markets). Pressing it →
+  `POST /api/publish` with her ID token → `server/publish.js` proves she's an admin by
   reading `admins/{uid}` through Firestore REST WITH that token (Firestore verifies it; no
-  service account) → hits `DEPLOY_HOOK_URL` (secret, Production only). The sidebar (and a
-  pill in the phone top bar) shows Changes saved → Updating the website… → Website is up to
-  date, the last by polling `/content-version.json` until `builtAt` passes the request time.
-  Hobby allows 100 deployments/day; the 30 s batching keeps it far below that.
+  service account) → hits `DEPLOY_HOOK_URL` (secret, Production only) → "Publishing…" →
+  polls `/content-version.json` until `builtAt` passes the request → "Website is up to
+  date", then re-checks in case something was saved mid-build. Measured live: ~1.5 min.
+  Re-checks on load and when the tab becomes visible. Hobby allows 100 deployments/day.
 - Without `DEPLOY_HOOK_URL` (local dev) `/api/publish` answers 503 `not_configured` and the
   sidebar says "Publishing is off here". Keep it out of `.env.local`: dev uses the REAL
-  Firestore, so local edits are real edits, but they shouldn't rebuild the live site.
+  Firestore, so local edits are real edits (and stamp `settings/edits`, so the LIVE
+  dashboard will then show unpublished changes), but they shouldn't rebuild the live site.
+- The Claude desktop app's browser pane never fires `visibilitychange`/`pagehide`/`blur`
+  when switching its tabs, so anything keyed on those can't be tested there.
 - Stale tabs: the drawer sends `expectedTotal`; if the server's total differs (prices
   republished since the page loaded) checkout answers 409 `prices_changed` and the drawer
   offers "Refresh prices". Stock changes were already caught by `findProblems`.
@@ -248,7 +257,7 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   `.env.local`; Vercel Production needs the same six; Preview deliberately has none, so
   previews run the sample-data demo and can't touch real data.
 - SECURITY IS `firestore.rules`, published in the console (current version 2026-10-06
-  1:14 PM, adds `photos`) — the adapter's checks are courtesy only. Public read on
+  1:41 PM: adds `photos` and `settings/edits`) — the adapter's checks are courtesy only. Public read on
   flavors/events/packages/pricing/photos;
   writes only for uids with a doc in `admins/{uid}` (`{ email, name }`), which only the
   console can write. Verified 2026-10-06 with anonymous REST calls (read 200, every write

@@ -95,6 +95,15 @@ service cloud.firestore {
       allow read, create: if isAdmin();
     }
 
+    // "Something changed since the last publish": stamped on every save, so
+    // the dashboard can show unpublished changes on any device.
+    match /settings/edits {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin()
+        && request.resource.data.keys().hasOnly(['lastEditAt', 'by'])
+        && request.resource.data.lastEditAt == request.time;
+    }
+
     // Who may sign in to the dashboard. A user may check their own entry
     // (that is how the dashboard knows to let them in); nobody may write.
     match /admins/{uid} {

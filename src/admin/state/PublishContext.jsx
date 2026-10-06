@@ -2,60 +2,39 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { backend } from '../backend/adapter.js'
 
 /**
- * Getting saved changes onto the website, automatically.
+ * Getting saved changes onto the website -- when the client says so.
  *
- * The site is a snapshot rebuilt on publish (scripts/build-content.mjs), and a
- * rebuild takes about a minute, so rebuilding after every save would queue a
- * pile of builds while the client flips five flavors to sold out. Instead each
- * successful save calls `changed()`, which (re)starts a QUIET_MS timer; when
- * the saves pause, the site is rebuilt once with all of them. A rebuild reads
- * ALL of Firestore, so it carries everyone's edits, not just this tab's.
+ * Saving changes the database straight away; the website is a snapshot that
+ * is only rebuilt when someone presses Publish (scripts/build-content.mjs).
+ * A button rather than auto-publishing, so a batch of edits -- re-pricing,
+ * reshuffling the case before a market -- goes live in one piece instead of
+ * half-way through (Jordan's call, 2026-10-06; an earlier version published
+ * itself 30 s after the last save).
  *
- * Leaving the page (closing the tab, locking the phone, switching apps)
- * publishes at once, and a flag in localStorage catches the case where even
- * that didn't get out, so the next visit to the dashboard finishes the job.
+ * "Unpublished changes" is decided from the SERVER, not from this tab: every
+ * save stamps settings/edits.lastEditAt, and the live site reports when it was
+ * built in /content-version.json. An edit newer than the build means the site
+ * is behind -- on her phone, her laptop, and for Jordan, whoever made the edit.
  *
- * After a publish, the status polls /content-version.json until the live site
- * reports a build from after the request -- that's "Live on the website".
+ * Publishing calls /api/publish, then polls /content-version.json until the
+ * live site was built after the request, and checks again in case something
+ * was saved while it built.
  *
  * With the sample-data mock there is no `backend.publish`; everything here is
- * then a no-op and the status stays idle.
+ * a no-op.
  */
 
-const QUIET_MS = 30_000
 const POLL_MS = 8_000
 const SLOW_MS = 4 * 60_000
 const GIVE_UP_MS = 20 * 60_000
-const PENDING_KEY = 'fff-admin/publish-pending'
 
 const PublishContext = createContext(null)
 
-function readPending() {
-  try {
-    return localStorage.getItem(PENDING_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-function writePending(on) {
-  try {
-    if (on) localStorage.setItem(PENDING_KEY, '1')
-    else localStorage.removeItem(PENDING_KEY)
-  } catch {
-    /* private mode: the in-memory flag still covers this visit */
-  }
-}
+const isBusy = (state) => state === 'publishing' || state === 'slow'
 
 export function PublishProvider({ children }) {
   const api = backend.publish
-  const [status, setStatus] = useState({ state: 'idle' })
-
-  const pending = useRef(false)
-  // Bumped by every change, so a publish that started before the latest save
-  // doesn't clear the "still unpublished" flag on its way out.
-  const version = useRef(0)
-  const timer = useRef(null)
+  const [status, setStatus] = useState({ state: api ? 'checking' : 'idle' })
   const poll = useRef(null)
 
   const stopPolling = () => {
@@ -63,16 +42,29 @@ export function PublishProvider({ children }) {
     poll.current = null
   }
 
+  /** Compare the last save with the live build and settle on clean or dirty. */
+  const check = useCallback(async () => {
+    if (!api) return
+    const [lastEditAt, live] = await Promise.all([
+      api.lastEditAt().catch(() => null),
+      api.liveVersion().catch(() => null),
+    ])
+    const liveAt = live?.builtAt ?? null
+    // Both are ISO strings from server clocks, so they compare as text.
+    const dirty = Boolean(lastEditAt && (!liveAt || lastEditAt > liveAt))
+    setStatus((s) => (isBusy(s.state) ? s : { state: dirty ? 'dirty' : 'clean', liveAt }))
+  }, [api])
+
   const watch = useCallback(
     (requestedAt) => {
       stopPolling()
       const started = Date.now()
-      const check = async () => {
+      const tick = async () => {
         try {
           const live = await api.liveVersion()
-          // Both are ISO strings from server clocks, so they compare as text.
           if (live?.builtAt && live.builtAt >= requestedAt) {
-            setStatus({ state: 'live', at: live.builtAt })
+            setStatus({ state: 'clean', liveAt: live.builtAt })
+            check() // anything saved while it was building?
             return
           }
         } catch {
@@ -81,96 +73,52 @@ export function PublishProvider({ children }) {
         const waited = Date.now() - started
         if (waited > GIVE_UP_MS) return
         if (waited > SLOW_MS) {
-          setStatus((s) => (s.state === 'publishing' ? { state: 'slow' } : s))
+          setStatus((s) => (s.state === 'publishing' ? { ...s, state: 'slow' } : s))
         }
-        poll.current = setTimeout(check, POLL_MS)
+        poll.current = setTimeout(tick, POLL_MS)
       }
-      poll.current = setTimeout(check, POLL_MS)
+      poll.current = setTimeout(tick, POLL_MS)
     },
-    [api]
+    [api, check]
   )
 
-  const flush = useCallback(
-    async ({ keepalive = false } = {}) => {
-      clearTimeout(timer.current)
-      timer.current = null
-      if (!api || !pending.current) return
+  const publish = useCallback(async () => {
+    if (!api) return
+    setStatus((s) => ({ state: 'publishing', liveAt: s.liveAt }))
+    try {
+      const { requestedAt } = await api.request()
+      watch(requestedAt)
+    } catch (err) {
+      setStatus((s) => ({ state: 'error', code: err?.code, message: err?.message, liveAt: s.liveAt }))
+    }
+  }, [api, watch])
 
-      const publishing = version.current
-      pending.current = false
-      setStatus({ state: 'publishing' })
-      try {
-        const { requestedAt } = await api.request({ keepalive })
-        if (version.current === publishing) writePending(false)
-        watch(requestedAt)
-      } catch (err) {
-        pending.current = true
-        setStatus({ state: 'error', code: err?.code, message: err?.message })
-      }
-    },
-    [api, watch]
-  )
-
+  /** Called by DataContext after every successful save. */
   const changed = useCallback(() => {
     if (!api) return
-    version.current += 1
-    pending.current = true
-    writePending(true)
-    stopPolling()
-    clearTimeout(timer.current)
-    timer.current = setTimeout(() => flush(), QUIET_MS)
-    setStatus({ state: 'waiting' })
-    api.warm().catch(() => {})
-  }, [api, flush])
+    // Mid-publish, the build may or may not have caught this save; check()
+    // decides once it lands.
+    setStatus((s) => (isBusy(s.state) ? s : { state: 'dirty', liveAt: s.liveAt }))
+    api.markEdited().catch((err) => console.warn('[publish] could not stamp the edit:', err))
+  }, [api])
 
-  // A previous visit saved something it never got published: do it now.
-  useEffect(() => {
-    if (api && readPending()) {
-      pending.current = true
-      flush()
-    }
-  }, [api, flush])
-
-  // Leaving the page: publish now rather than lose the timer with the tab.
+  // Where things stand when the dashboard opens, and again whenever she comes
+  // back to it -- someone may have saved or published from another device.
   useEffect(() => {
     if (!api) return undefined
-    const leave = () => {
-      if (pending.current) flush({ keepalive: true })
+    check()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check()
     }
-    const onVisibility = () => {
-      if (document.visibilityState === 'hidden') leave()
-    }
-    document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', leave)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', leave)
-    }
-  }, [api, flush])
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [api, check])
 
-  useEffect(
-    () => () => {
-      clearTimeout(timer.current)
-      stopPolling()
-    },
-    []
-  )
+  useEffect(() => stopPolling, [])
 
   const value = useMemo(
-    () => ({
-      enabled: Boolean(api),
-      status,
-      changed,
-      /** "Update now" / "Try again", and before signing out. */
-      publishNow: () => {
-        if (api && (pending.current || readPending())) {
-          pending.current = true
-          return flush()
-        }
-        return Promise.resolve()
-      },
-    }),
-    [api, status, changed, flush]
+    () => ({ enabled: Boolean(api), status, changed, publish }),
+    [api, status, changed, publish]
   )
 
   return <PublishContext.Provider value={value}>{children}</PublishContext.Provider>

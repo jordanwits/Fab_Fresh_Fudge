@@ -19,8 +19,8 @@ const DataContext = createContext(null)
 
 export function DataProvider({ children }) {
   const toast = useToast()
-  // Every successful write tells the publisher, which rebuilds the website
-  // once the edits pause. Failed writes and plain reads don't.
+  // Every successful write tells the publisher, which flags the website as
+  // behind until she publishes. Failed writes and plain reads don't.
   const { changed } = usePublish()
 
   const [flavors, setFlavors] = useState([])
@@ -84,7 +84,7 @@ export function DataProvider({ children }) {
       await backend.flavors.remove(flavor.id)
       changed()
       setFlavors((prev) => prev.filter((f) => f.id !== flavor.id))
-      toast.success('Flavor deleted', `${flavor.name} was removed from the site.`)
+      toast.success('Flavor deleted', `${flavor.name} was deleted.`)
     },
     [toast, changed]
   )
@@ -192,7 +192,7 @@ export function DataProvider({ children }) {
       const saved = await backend.packages.create(draft)
       changed()
       setPackages((prev) => [...prev, saved])
-      toast.success('Package added', `${saved.name} is on the Corporate Gifts section.`)
+      toast.success('Package added', `${saved.name} was added to the gift packages.`)
       return saved
     },
     [toast, changed]
@@ -214,7 +214,7 @@ export function DataProvider({ children }) {
       await backend.packages.remove(pkg.id)
       changed()
       setPackages((prev) => prev.filter((p) => p.id !== pkg.id))
-      toast.success('Package deleted', `${pkg.name} was removed from the site.`)
+      toast.success('Package deleted', `${pkg.name} was deleted.`)
     },
     [toast, changed]
   )
@@ -260,7 +260,7 @@ export function DataProvider({ children }) {
       setPricing(saved)
       toast.success(
         'Prices saved',
-        backend.feedsSite ? 'The website shows them in about a minute.' : 'The new prices are stored.'
+        backend.feedsSite ? 'Publish to put them on the website.' : 'The new prices are stored.'
       )
       return saved
     },

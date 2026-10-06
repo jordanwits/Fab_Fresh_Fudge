@@ -55,8 +55,9 @@
  *   library()            -> Promise<string[]>   already-available image paths
  *
  * backend.publish                   optional; Firebase only (see PublishContext)
- *   warm()               -> Promise<void>       fetch a token ahead of time
- *   request({ keepalive }) -> Promise<{ requestedAt }>  rebuild the site;
+ *   markEdited()         -> Promise<void>       stamp settings/edits
+ *   lastEditAt()         -> Promise<string|null> ISO time of the last save
+ *   request()            -> Promise<{ requestedAt }>  rebuild the site;
  *                                                throws { code, message }
  *   liveVersion()        -> Promise<{ builtAt, source }|null>
  *
@@ -138,8 +139,9 @@
  * src/data/{flavors,site,checkout}.js export. The checkout function imports
  * those same modules (via src/lib/cart.js), and Vercel runs the build command
  * before bundling functions, so the price on the page and the price charged
- * come from one snapshot. Saving in the dashboard triggers a rebuild through
- * /api/publish (state/PublishContext.jsx decides when). Pricing writes are
+ * come from one snapshot. Saving only changes the database; pressing Publish
+ * in the dashboard rebuilds through /api/publish (state/PublishContext.jsx),
+ * so a batch of edits goes live together. Pricing writes are
  * admin-only and shape-checked in the rules, and validatePricing runs again
  * in the build; a page left open across a price change is caught at checkout
  * by the drawer's expectedTotal (409 prices_changed).

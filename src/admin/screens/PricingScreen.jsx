@@ -249,7 +249,7 @@ export default function PricingScreen() {
           <>
             <p>
               {backend.feedsSite
-                ? 'In about a minute, the website will charge:'
+                ? 'Once you publish, the website will charge:'
                 : 'These will be stored, ready for when the website reads them:'}
             </p>
             <ul className="pricing-confirm">

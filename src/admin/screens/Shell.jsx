@@ -60,49 +60,49 @@ function NavList({ route, counts, onNavigate }) {
 }
 
 /**
- * Where the website is in catching up with the dashboard. Saving changes the
- * database at once; the site follows about a minute later (PublishContext), so
- * the client needs to see which of those she's looking at.
+ * Whether the website has caught up with the dashboard. Saving changes the
+ * database at once; the site only changes when she publishes (PublishContext),
+ * so she needs to see which of those she's looking at -- and the button.
  */
 function publishCopy(status) {
+  const time = (iso) =>
+    new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+
   switch (status.state) {
-    case 'waiting':
+    case 'dirty':
       return {
         tone: 'info',
-        icon: 'refresh',
-        title: 'Changes saved',
-        body: 'Going live on the website in about a minute.',
-        action: 'Update now',
-        short: 'Live in a minute',
+        icon: 'upload',
+        title: 'Unpublished changes',
+        body: "Saved, but not on the website yet. Publish when you're done editing.",
+        action: 'Publish changes',
+        short: 'Publish',
+        pillPublishes: true,
       }
     case 'publishing':
       return {
         tone: 'info',
         icon: 'refresh',
         spin: true,
-        title: 'Updating the website…',
-        body: 'This takes about a minute.',
-        short: 'Updating site…',
-      }
-    case 'live':
-      return {
-        tone: 'good',
-        icon: 'check',
-        title: 'Website is up to date',
-        body: `Updated at ${new Date(status.at).toLocaleTimeString([], {
-          hour: 'numeric',
-          minute: '2-digit',
-        })}.`,
-        short: 'Site updated',
+        title: 'Publishing\u2026',
+        body: 'The website updates in about a minute. You can keep working.',
+        short: 'Publishing\u2026',
       }
     case 'slow':
       return {
         tone: 'info',
         icon: 'refresh',
         spin: true,
-        title: 'Still updating…',
-        body: 'Taking longer than usual. It will catch up; no need to save again.',
-        short: 'Still updating',
+        title: 'Still publishing\u2026',
+        body: 'Taking longer than usual. It will catch up; no need to publish again.',
+        short: 'Still publishing',
+      }
+    case 'clean':
+      return {
+        tone: 'good',
+        icon: 'check',
+        title: 'Website is up to date',
+        body: status.liveAt ? `Last published at ${time(status.liveAt)}.` : 'Nothing waiting to publish.',
       }
     case 'error':
       if (status.code === 'not_configured') {
@@ -110,40 +110,30 @@ function publishCopy(status) {
           tone: 'quiet',
           icon: 'alert',
           title: 'Publishing is off here',
-          body: "Saved. This copy of the dashboard doesn't update the live site.",
+          body: "Saved. This copy of the dashboard can't publish the live site.",
         }
       }
       return {
         tone: 'warn',
         icon: 'alert',
-        title: "Couldn't update the website",
+        title: "Couldn't publish",
         body: status.message || 'Your changes are saved. Try again in a moment.',
         action: 'Try again',
-        short: 'Update failed',
+        short: 'Publish failed',
       }
     default:
       return {
         tone: 'quiet',
         icon: 'external',
         title: 'Website',
-        body: 'Changes go live about a minute after you save.',
+        body: 'Checking for unpublished changes\u2026',
       }
   }
 }
 
 function PublishStatus() {
-  const { status, publishNow } = usePublish()
-  const [busy, setBusy] = useState(false)
+  const { status, publish } = usePublish()
   const copy = publishCopy(status)
-
-  const act = async () => {
-    setBusy(true)
-    try {
-      await publishNow()
-    } finally {
-      setBusy(false)
-    }
-  }
 
   return (
     <div className={`rail__notice rail__notice--${copy.tone}`} role="status" aria-live="polite">
@@ -155,22 +145,39 @@ function PublishStatus() {
       </p>
       <p className="rail__notice-body">{copy.body}</p>
       {copy.action ? (
-        <button type="button" className="rail__notice-action" onClick={act} disabled={busy}>
-          <Icon name="refresh" size={13} />
+        <Button
+          variant="primary"
+          size="sm"
+          icon={status.state === 'error' ? 'refresh' : 'upload'}
+          full
+          className="rail__publish"
+          onClick={publish}
+        >
           {copy.action}
-        </button>
+        </Button>
       ) : null}
     </div>
   )
 }
 
-/** The phone's version: one word in the top bar, the full story in the menu. */
+/**
+ * The phone's version, in the top bar. With unpublished changes it IS the
+ * publish button -- she updates stock from a phone at markets and shouldn't
+ * have to open the menu to finish the job. Otherwise it opens the menu, where
+ * the full status lives.
+ */
 function PublishPill({ onOpen }) {
-  const { status } = usePublish()
+  const { status, publish } = usePublish()
   const copy = publishCopy(status)
   if (!copy.short) return null
   return (
-    <button type="button" className={`topbar__status topbar__status--${copy.tone}`} onClick={onOpen}>
+    <button
+      type="button"
+      className={`topbar__status topbar__status--${copy.tone}${
+        copy.pillPublishes ? ' topbar__status--action' : ''
+      }`}
+      onClick={copy.pillPublishes ? publish : onOpen}
+    >
       {copy.short}
     </button>
   )
@@ -264,7 +271,6 @@ function RailBody({ route, counts, onNavigate, onSignOut, onReset, user, resetti
 export default function Shell({ route, children }) {
   const { user, signOut } = useAuth()
   const { flavors, events, packages, resetSampleData } = useData()
-  const { publishNow } = usePublish()
   const toast = useToast()
 
   const [navOpen, setNavOpen] = useState(false)
@@ -306,12 +312,9 @@ export default function Shell({ route, children }) {
     counts,
     user,
     resetting,
-    // Get any waiting changes out first: once signed out, there's no login
-    // to publish with until the next visit.
-    onSignOut: async () => {
-      await publishNow().catch(() => {})
-      signOut()
-    },
+    // Unpublished changes survive signing out: they're flagged from the
+    // server, so the next sign-in on any device still offers to publish.
+    onSignOut: signOut,
     onReset: resetSampleData ? () => setConfirmReset(true) : null,
   }
 

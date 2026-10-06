@@ -1017,6 +1017,10 @@ code {
   color: var(--a-rail-ink);
 }
 
+.rail__publish {
+  margin-top: var(--s3);
+}
+
 .rail__notice-title .is-spinning {
   display: inline-flex;
   animation: spin 1.1s linear infinite;
@@ -1201,6 +1205,21 @@ code {
 
 .topbar__status--good::before {
   background: var(--a-green-on-dark);
+}
+
+/* Unpublished changes: the pill is the Publish button itself. */
+.topbar__status--action {
+  border-color: transparent;
+  background: var(--a-sky);
+  color: oklch(0.22 0.04 47);
+}
+
+.topbar__status--action::before {
+  background: currentColor;
+}
+
+.topbar__status--action:active {
+  transform: translateY(1px);
 }
 
 .topbar__site {

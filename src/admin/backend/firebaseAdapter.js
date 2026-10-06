@@ -15,6 +15,8 @@
  *   packages/{auto}       CorporatePackage minus `id`, plus `sortOrder`
  *   settings/pricing      Pricing
  *   settings/meta         { seededAt, seededBy } -- marks the one-time import
+ *   settings/edits        { lastEditAt, by } -- stamped on every save; newer
+ *                         than the live site's builtAt = unpublished changes
  *   photos/{auto}         { full, thumb (JPEG bytes), contentType, width,
  *                         height, createdAt } -- see lib/image.js photoBlobs
  *   admins/{uid}          { email, name } -- who may sign in and write.
@@ -29,8 +31,9 @@
  * by design -- they identify the project, they do not grant access.
  *
  * Saving does not change the website by itself: the site is a build-time
- * snapshot (scripts/build-content.mjs). `publish` asks /api/publish to rebuild
- * it; state/PublishContext.jsx decides when.
+ * snapshot (scripts/build-content.mjs), rebuilt when an admin presses Publish
+ * (`publish.request` -> /api/publish). Every save stamps settings/edits, so
+ * any device can tell the live site is behind the database.
  */
 
 import { initializeApp } from 'firebase/app'
@@ -110,8 +113,6 @@ export class PublishError extends Error {
     this.code = code
   }
 }
-
-let warmToken = null
 
 /** Turn a Firebase rejection into something the UI can show verbatim. */
 function toDataError(err) {
@@ -523,27 +524,33 @@ export const firebaseAdapter = {
    * now when the page is left, show progress) lives in PublishContext.
    */
   publish: {
-    /** Fetch a fresh ID token now, so leaving the page can publish at once. */
-    async warm() {
-      const user = fb().auth.currentUser
-      if (user) warmToken = await user.getIdToken()
+    /** Stamp "something changed" so every device can see it's unpublished. */
+    async markEdited() {
+      const { db, auth } = fb()
+      await setDoc(doc(db, 'settings', 'edits'), {
+        lastEditAt: serverTimestamp(),
+        by: auth.currentUser?.email || null,
+      })
+    },
+
+    /** ISO time of the last save by anyone, or null if never stamped. */
+    async lastEditAt() {
+      const snap = await getDoc(doc(fb().db, 'settings', 'edits'))
+      return snap.exists() ? snap.data().lastEditAt?.toDate().toISOString() ?? null : null
     },
 
     /**
-     * Ask for a rebuild. `keepalive` lets the request outlive the page.
+     * Ask for a rebuild with everything in the database right now.
      * @returns {Promise<{ requestedAt: string }>} server time of the request
      */
-    async request({ keepalive = false } = {}) {
+    async request() {
       const user = fb().auth.currentUser
       if (!user) throw new PublishError('unauthenticated', 'Sign in again to publish.')
-      // When leaving the page there is no time to wait on a token refresh.
-      const token = keepalive && warmToken ? warmToken : await user.getIdToken()
       let res
       try {
         res = await fetch('/api/publish', {
           method: 'POST',
-          headers: { authorization: `Bearer ${token}` },
-          keepalive,
+          headers: { authorization: `Bearer ${await user.getIdToken()}` },
         })
       } catch {
         throw new PublishError('offline', "Couldn't reach the website. Check your connection.")
