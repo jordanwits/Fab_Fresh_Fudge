@@ -153,6 +153,19 @@ export async function handleCheckout(request, env = {}) {
     return json(409, { code: 'cart_problem', message: problems[0].message, problems })
   }
 
+  // The drawer sends the total it showed. Prices are published from the
+  // dashboard, so a tab opened before a price change shows old numbers; charge
+  // nothing until the customer has seen the real total. Only ever compared --
+  // the amount charged is always the one computed here. (Absent from carts
+  // sent by pages built before this check existed.)
+  const expected = body?.expectedTotal
+  if (expected !== undefined && expected !== cartTotals(lines).total) {
+    return json(409, {
+      code: 'prices_changed',
+      message: 'Our prices changed since this page loaded. Refresh to see the current total.',
+    })
+  }
+
   const config = readConfig(env)
   if (!config) {
     console.error('[checkout] SQUARE_ACCESS_TOKEN and SQUARE_LOCATION_ID must both be set.')

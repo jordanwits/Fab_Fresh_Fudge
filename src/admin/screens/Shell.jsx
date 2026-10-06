@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../state/AuthContext.jsx'
 import { useData } from '../state/DataContext.jsx'
 import { useToast } from '../state/ToastContext.jsx'
+import { usePublish } from '../state/PublishContext.jsx'
 import { backend } from '../backend/adapter.js'
 import { hrefFor } from '../lib/router.js'
 import Icon from '../ui/Icon.jsx'
@@ -58,6 +59,123 @@ function NavList({ route, counts, onNavigate }) {
   )
 }
 
+/**
+ * Where the website is in catching up with the dashboard. Saving changes the
+ * database at once; the site follows about a minute later (PublishContext), so
+ * the client needs to see which of those she's looking at.
+ */
+function publishCopy(status) {
+  switch (status.state) {
+    case 'waiting':
+      return {
+        tone: 'info',
+        icon: 'refresh',
+        title: 'Changes saved',
+        body: 'Going live on the website in about a minute.',
+        action: 'Update now',
+        short: 'Live in a minute',
+      }
+    case 'publishing':
+      return {
+        tone: 'info',
+        icon: 'refresh',
+        spin: true,
+        title: 'Updating the website…',
+        body: 'This takes about a minute.',
+        short: 'Updating site…',
+      }
+    case 'live':
+      return {
+        tone: 'good',
+        icon: 'check',
+        title: 'Website is up to date',
+        body: `Updated at ${new Date(status.at).toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit',
+        })}.`,
+        short: 'Site updated',
+      }
+    case 'slow':
+      return {
+        tone: 'info',
+        icon: 'refresh',
+        spin: true,
+        title: 'Still updating…',
+        body: 'Taking longer than usual. It will catch up; no need to save again.',
+        short: 'Still updating',
+      }
+    case 'error':
+      if (status.code === 'not_configured') {
+        return {
+          tone: 'quiet',
+          icon: 'alert',
+          title: 'Publishing is off here',
+          body: "Saved. This copy of the dashboard doesn't update the live site.",
+        }
+      }
+      return {
+        tone: 'warn',
+        icon: 'alert',
+        title: "Couldn't update the website",
+        body: status.message || 'Your changes are saved. Try again in a moment.',
+        action: 'Try again',
+        short: 'Update failed',
+      }
+    default:
+      return {
+        tone: 'quiet',
+        icon: 'external',
+        title: 'Website',
+        body: 'Changes go live about a minute after you save.',
+      }
+  }
+}
+
+function PublishStatus() {
+  const { status, publishNow } = usePublish()
+  const [busy, setBusy] = useState(false)
+  const copy = publishCopy(status)
+
+  const act = async () => {
+    setBusy(true)
+    try {
+      await publishNow()
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={`rail__notice rail__notice--${copy.tone}`} role="status" aria-live="polite">
+      <p className="rail__notice-title">
+        <span className={copy.spin ? 'is-spinning' : undefined}>
+          <Icon name={copy.icon} size={14} />
+        </span>
+        {copy.title}
+      </p>
+      <p className="rail__notice-body">{copy.body}</p>
+      {copy.action ? (
+        <button type="button" className="rail__notice-action" onClick={act} disabled={busy}>
+          <Icon name="refresh" size={13} />
+          {copy.action}
+        </button>
+      ) : null}
+    </div>
+  )
+}
+
+/** The phone's version: one word in the top bar, the full story in the menu. */
+function PublishPill({ onOpen }) {
+  const { status } = usePublish()
+  const copy = publishCopy(status)
+  if (!copy.short) return null
+  return (
+    <button type="button" className={`topbar__status topbar__status--${copy.tone}`} onClick={onOpen}>
+      {copy.short}
+    </button>
+  )
+}
+
 function RailBody({ route, counts, onNavigate, onSignOut, onReset, user, resetting }) {
   return (
     <>
@@ -105,6 +223,8 @@ function RailBody({ route, counts, onNavigate, onSignOut, onReset, user, resetti
               </button>
             ) : null}
           </div>
+        ) : backend.publish ? (
+          <PublishStatus />
         ) : !backend.feedsSite ? (
           <div className="rail__notice">
             <p className="rail__notice-title">
@@ -144,6 +264,7 @@ function RailBody({ route, counts, onNavigate, onSignOut, onReset, user, resetti
 export default function Shell({ route, children }) {
   const { user, signOut } = useAuth()
   const { flavors, events, packages, resetSampleData } = useData()
+  const { publishNow } = usePublish()
   const toast = useToast()
 
   const [navOpen, setNavOpen] = useState(false)
@@ -185,7 +306,12 @@ export default function Shell({ route, children }) {
     counts,
     user,
     resetting,
-    onSignOut: signOut,
+    // Get any waiting changes out first: once signed out, there's no login
+    // to publish with until the next visit.
+    onSignOut: async () => {
+      await publishNow().catch(() => {})
+      signOut()
+    },
     onReset: resetSampleData ? () => setConfirmReset(true) : null,
   }
 
@@ -209,6 +335,7 @@ export default function Shell({ route, children }) {
           onClick={() => setNavOpen(true)}
         />
         <span className="topbar__title">{current.label}</span>
+        <PublishPill onOpen={() => setNavOpen(true)} />
         <a className="topbar__site" href="/" aria-label="Open the website">
           <Icon name="external" size={18} />
         </a>

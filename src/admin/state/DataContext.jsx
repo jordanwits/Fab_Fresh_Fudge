@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { backend } from '../backend/adapter.js'
 import { useToast } from './ToastContext.jsx'
+import { usePublish } from './PublishContext.jsx'
 import { byDate } from '../lib/eventDate.js'
 
 /**
@@ -18,6 +19,9 @@ const DataContext = createContext(null)
 
 export function DataProvider({ children }) {
   const toast = useToast()
+  // Every successful write tells the publisher, which rebuilds the website
+  // once the edits pause. Failed writes and plain reads don't.
+  const { changed } = usePublish()
 
   const [flavors, setFlavors] = useState([])
   const [events, setEvents] = useState([])
@@ -56,30 +60,33 @@ export function DataProvider({ children }) {
   const createFlavor = useCallback(
     async (draft) => {
       const saved = await backend.flavors.create(draft)
+      changed()
       setFlavors((prev) => [...prev, saved])
       toast.success('Flavor added', `${saved.name} is now in the flavor case.`)
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   const updateFlavor = useCallback(
     async (id, patch) => {
       const saved = await backend.flavors.update(id, patch)
+      changed()
       setFlavors((prev) => prev.map((f) => (f.id === id ? saved : f)))
       toast.success('Changes saved', `${saved.name} is up to date.`)
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   const deleteFlavor = useCallback(
     async (flavor) => {
       await backend.flavors.remove(flavor.id)
+      changed()
       setFlavors((prev) => prev.filter((f) => f.id !== flavor.id))
       toast.success('Flavor deleted', `${flavor.name} was removed from the site.`)
     },
-    [toast]
+    [toast, changed]
   )
 
   const setSoldOut = useCallback(
@@ -88,13 +95,14 @@ export function DataProvider({ children }) {
       setFlavors((prev) => prev.map((f) => (f.id === id ? { ...f, soldOut } : f)))
       try {
         const saved = await backend.flavors.update(id, { soldOut })
+        changed()
         setFlavors((prev) => prev.map((f) => (f.id === id ? saved : f)))
       } catch (err) {
         setFlavors(before)
         toast.error("Couldn't update stock", err?.message || 'Try again in a moment.')
       }
     },
-    [flavors, toast]
+    [flavors, toast, changed]
   )
 
   /**
@@ -134,12 +142,13 @@ export function DataProvider({ children }) {
 
       try {
         await backend.flavors.reorder(next.map((f) => f.id))
+        changed()
       } catch (err) {
         setFlavors(before)
         toast.error("Couldn't save the new order", err?.message || 'Try again in a moment.')
       }
     },
-    [flavors, toast]
+    [flavors, toast, changed]
   )
 
   // --- events --------------------------------------------------------------
@@ -147,30 +156,33 @@ export function DataProvider({ children }) {
   const createEvent = useCallback(
     async (draft) => {
       const saved = await backend.events.create(draft)
+      changed()
       setEvents((prev) => [...prev, saved].sort(byDate))
       toast.success('Show added', `${saved.name} is on the schedule.`)
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   const updateEvent = useCallback(
     async (id, patch) => {
       const saved = await backend.events.update(id, patch)
+      changed()
       setEvents((prev) => prev.map((e) => (e.id === id ? saved : e)).sort(byDate))
       toast.success('Changes saved', `${saved.name} is up to date.`)
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   const deleteEvent = useCallback(
     async (event) => {
       await backend.events.remove(event.id)
+      changed()
       setEvents((prev) => prev.filter((e) => e.id !== event.id))
       toast.success('Show deleted', `${event.name} was removed from the schedule.`)
     },
-    [toast]
+    [toast, changed]
   )
 
   // --- corporate packages --------------------------------------------------
@@ -178,30 +190,33 @@ export function DataProvider({ children }) {
   const createPackage = useCallback(
     async (draft) => {
       const saved = await backend.packages.create(draft)
+      changed()
       setPackages((prev) => [...prev, saved])
       toast.success('Package added', `${saved.name} is on the Corporate Gifts section.`)
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   const updatePackage = useCallback(
     async (id, patch) => {
       const saved = await backend.packages.update(id, patch)
+      changed()
       setPackages((prev) => prev.map((p) => (p.id === id ? saved : p)))
       toast.success('Changes saved', `${saved.name} is up to date.`)
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   const deletePackage = useCallback(
     async (pkg) => {
       await backend.packages.remove(pkg.id)
+      changed()
       setPackages((prev) => prev.filter((p) => p.id !== pkg.id))
       toast.success('Package deleted', `${pkg.name} was removed from the site.`)
     },
-    [toast]
+    [toast, changed]
   )
 
   /**
@@ -227,12 +242,13 @@ export function DataProvider({ children }) {
 
       try {
         await backend.packages.reorder(next.map((p) => p.id))
+        changed()
       } catch (err) {
         setPackages(before)
         toast.error("Couldn't save the new order", err?.message || 'Try again in a moment.')
       }
     },
-    [packages, toast]
+    [packages, toast, changed]
   )
 
   // --- pricing -------------------------------------------------------------
@@ -240,11 +256,15 @@ export function DataProvider({ children }) {
   const updatePricing = useCallback(
     async (patch) => {
       const saved = await backend.pricing.update(patch)
+      changed()
       setPricing(saved)
-      toast.success('Prices saved', 'The new prices are stored.')
+      toast.success(
+        'Prices saved',
+        backend.feedsSite ? 'The website shows them in about a minute.' : 'The new prices are stored.'
+      )
       return saved
     },
-    [toast]
+    [toast, changed]
   )
 
   // --- dev -----------------------------------------------------------------

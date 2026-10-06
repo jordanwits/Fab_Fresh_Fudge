@@ -2,13 +2,15 @@
 // both import this file, so the total a customer sees and the total Square
 // charges come from the same numbers.
 //
-// SHIPPING_FEE is a placeholder pending the client's real rate. Prices per
-// item live next to the catalog in flavors.js.
+// SHIPPING_FEE comes from the dashboard's Pricing screen via the published
+// snapshot, like the prices per item in flavors.js.
+
+import CONTENT from './generated/content.js'
 
 export const CURRENCY = 'USD'
 
 /** Flat shipping per order, in dollars. 0 drops the shipping line entirely. */
-export const SHIPPING_FEE = 12
+export const SHIPPING_FEE = CONTENT.pricing.shippingFee
 
 /** Most of one thing a single cart line can hold. The server enforces it too. */
 export const MAX_LINE_QTY = 24

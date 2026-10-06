@@ -1,8 +1,9 @@
 /**
- * Firebase backend: satisfies the contract in adapter.js against Firestore,
- * Firebase Auth and (once the project is on the Blaze plan) Cloud Storage.
+ * Firebase backend: satisfies the contract in adapter.js against Firestore and
+ * Firebase Auth, on the free (Spark) plan -- so no Cloud Storage: uploaded
+ * photos are stored in Firestore itself and served by /api/photo.
  *
- * SECURITY LIVES IN firestore.rules / storage.rules, NOT HERE. Everything in
+ * SECURITY LIVES IN firestore.rules, NOT HERE. Everything in
  * this file runs in the browser and can be bypassed; the checks below exist
  * to give the client a clear message, never to protect data. The rules allow
  * public reads and let only uids listed in `admins/{uid}` write.
@@ -14,6 +15,8 @@
  *   packages/{auto}       CorporatePackage minus `id`, plus `sortOrder`
  *   settings/pricing      Pricing
  *   settings/meta         { seededAt, seededBy } -- marks the one-time import
+ *   photos/{auto}         { full, thumb (JPEG bytes), contentType, width,
+ *                         height, createdAt } -- see lib/image.js photoBlobs
  *   admins/{uid}          { email, name } -- who may sign in and write.
  *                         Added by hand in the Firebase console; no code can
  *                         write it (rules say `write: if false`).
@@ -24,12 +27,17 @@
  *
  * Configured from VITE_FIREBASE_* (see .env.example). These values are public
  * by design -- they identify the project, they do not grant access.
+ *
+ * Saving does not change the website by itself: the site is a build-time
+ * snapshot (scripts/build-content.mjs). `publish` asks /api/publish to rebuild
+ * it; state/PublishContext.jsx decides when.
  */
 
 import { initializeApp } from 'firebase/app'
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth'
 import {
   addDoc,
+  Bytes,
   collection,
   deleteDoc,
   doc,
@@ -42,13 +50,13 @@ import {
   updateDoc,
   writeBatch,
 } from 'firebase/firestore'
-import { getDownloadURL, getStorage, listAll, ref, uploadBytes } from 'firebase/storage'
 import { AuthError, DataError } from './errors.js'
 import { PHOTO_LIBRARY, seedData } from './seed.js'
-import { isSlug, slugify } from '../lib/slug.js'
+import { isSlug } from '../lib/slug.js'
 import { parsePrice, validatePricing } from '../lib/price.js'
 import { byDate } from '../lib/eventDate.js'
-import { downscaleToBlob, formatBytes, isSupportedImage, MAX_UPLOAD_BYTES } from '../lib/image.js'
+import { formatBytes, isSupportedImage, MAX_UPLOAD_BYTES, photoBlobs } from '../lib/image.js'
+import { photoIdFrom, photoUrl } from '../lib/photo.js'
 
 const env = import.meta.env
 
@@ -56,20 +64,12 @@ const CONFIG = {
   apiKey: env.VITE_FIREBASE_API_KEY,
   authDomain: env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID,
   appId: env.VITE_FIREBASE_APP_ID,
 }
 
-/**
- * Uploads need a Storage bucket, and Firebase only creates one on the Blaze
- * plan. Until then the bucket variable stays blank and uploading says so up
- * front, instead of retrying against a bucket that doesn't exist.
- */
-const uploadsEnabled = Boolean(CONFIG.storageBucket)
-
-/** Uploaded photos land here; `library()` lists it. */
-const UPLOAD_FOLDER = 'flavors'
+/** Uploads nobody has used for this long are deleted by sweepPhotos(). */
+const UNUSED_PHOTO_TTL_MS = 24 * 60 * 60 * 1000
 
 // ---------------------------------------------------------------------------
 // services -- created on first use, so importing this file costs nothing
@@ -85,14 +85,7 @@ function fb() {
   // rejects undefined outright unless told to drop it.
   const db = initializeFirestore(app, { ignoreUndefinedProperties: true })
   const auth = getAuth(app)
-  let storage = null
-  if (uploadsEnabled) {
-    storage = getStorage(app)
-    // The defaults retry for up to ten minutes, which reads as a hung button.
-    storage.maxUploadRetryTime = 30_000
-    storage.maxOperationRetryTime = 15_000
-  }
-  services = { app, db, auth, storage }
+  services = { app, db, auth }
   return services
 }
 
@@ -108,6 +101,17 @@ const DATA_MESSAGES = {
   'deadline-exceeded': 'The database took too long to answer. Try again in a moment.',
   'resource-exhausted': "The database's daily allowance is used up. It resets overnight.",
 }
+
+/** A publish that didn't go through; `code` comes from server/publish.js. */
+export class PublishError extends Error {
+  constructor(code, message) {
+    super(message)
+    this.name = 'PublishError'
+    this.code = code
+  }
+}
+
+let warmToken = null
 
 /** Turn a Firebase rejection into something the UI can show verbatim. */
 function toDataError(err) {
@@ -258,6 +262,58 @@ function ensureSeeded(email) {
   return seeding
 }
 
+// ---------------------------------------------------------------------------
+// photos
+// ---------------------------------------------------------------------------
+
+/**
+ * Every uploaded photo's id and upload time, newest first -- WITHOUT the image
+ * bytes. The client SDK can't leave fields out of a read, and pulling every
+ * photo's bytes just to list them would cost megabytes, so this asks the
+ * Firestore REST API for a projection (photos are public-read).
+ */
+async function listPhotos() {
+  const res = await fetch(
+    `https://firestore.googleapis.com/v1/projects/${CONFIG.projectId}/databases/(default)/documents:runQuery`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: 'photos' }],
+          select: { fields: [{ fieldPath: 'createdAt' }] },
+          orderBy: [{ field: { fieldPath: 'createdAt' }, direction: 'DESCENDING' }],
+        },
+      }),
+    }
+  )
+  if (!res.ok) throw new Error(`Listing photos failed: HTTP ${res.status}`)
+  const rows = await res.json()
+  return rows
+    .filter((row) => row.document)
+    .map(({ document }) => ({
+      id: document.name.slice(document.name.lastIndexOf('/') + 1),
+      createdAt: Date.parse(document.fields?.createdAt?.timestampValue || '') || 0,
+    }))
+}
+
+/**
+ * Delete uploads no flavor uses. Only ones older than a day: a photo dropped
+ * into an editor that hasn't been saved yet is unused for a while, and the
+ * live site keeps showing a replaced photo until the next publish lands.
+ * Best effort, once per sign-in, never blocks anything.
+ */
+async function sweepPhotos() {
+  const { db } = fb()
+  const [photos, flavors] = await Promise.all([listPhotos(), listOrdered('flavors')])
+  const inUse = new Set(flavors.map((f) => photoIdFrom(f.img)).filter(Boolean))
+  const cutoff = Date.now() - UNUSED_PHOTO_TTL_MS
+  const stale = photos.filter((p) => !inUse.has(p.id) && p.createdAt && p.createdAt < cutoff)
+  await Promise.all(stale.map((p) => deleteDoc(doc(db, 'photos', p.id))))
+}
+
+let swept = false
+
 /** Signed in AND listed in admins/, or null (and signed back out). */
 async function admitted(user) {
   const { auth } = fb()
@@ -272,6 +328,10 @@ async function admitted(user) {
     // Only AuthError messages reach the login form, so say what happened.
     throw new AuthError(`Signed in, but setting up the content failed. ${toDataError(err).message}`)
   }
+  if (!swept) {
+    swept = true
+    sweepPhotos().catch((err) => console.warn('[photos] sweep skipped:', err))
+  }
   return sessionFor(user, admin)
 }
 
@@ -282,9 +342,8 @@ async function admitted(user) {
 export const firebaseAdapter = {
   label: 'Firebase',
   isMock: false,
-  // The public site and checkout still read src/data/, not Firestore. Flip
-  // this when they do, and the "not on the website yet" notices go away.
-  feedsSite: false,
+  // The site and checkout are rebuilt from Firestore on publish.
+  feedsSite: true,
 
   auth: {
     async getSession() {
@@ -417,11 +476,9 @@ export const firebaseAdapter = {
 
   media: {
     async library() {
-      if (!uploadsEnabled) return [...PHOTO_LIBRARY]
       try {
-        const listing = await listAll(ref(fb().storage, UPLOAD_FOLDER))
-        const uploaded = await Promise.all(listing.items.map((item) => getDownloadURL(item)))
-        return [...uploaded.reverse(), ...PHOTO_LIBRARY]
+        const uploaded = (await listPhotos()).map((p) => photoUrl(p.id))
+        return [...uploaded, ...PHOTO_LIBRARY]
       } catch (err) {
         console.error(err)
         return [...PHOTO_LIBRARY]
@@ -429,11 +486,6 @@ export const firebaseAdapter = {
     },
 
     async upload(file) {
-      if (!uploadsEnabled) {
-        throw new DataError(
-          "Photo uploads aren't switched on yet. Choose one of the photos already on the site for now."
-        )
-      }
       if (!isSupportedImage(file)) {
         throw new DataError('Pick a JPG, PNG, WebP, or AVIF image.')
       }
@@ -443,23 +495,70 @@ export const firebaseAdapter = {
         )
       }
 
-      const { blob } = await downscaleToBlob(file)
-      const base = slugify(file.name.replace(/\.[^.]+$/, '')) || 'photo'
-      const target = ref(fb().storage, `${UPLOAD_FOLDER}/${Date.now()}-${base}.jpg`)
+      let blobs
       try {
-        await uploadBytes(target, blob, {
-          contentType: 'image/jpeg',
-          // The name is unique per upload, so the file never changes.
-          cacheControl: 'public, max-age=31536000, immutable',
-        })
-        return { url: await getDownloadURL(target) }
+        blobs = await photoBlobs(file)
       } catch (err) {
-        console.error(err)
-        if (err?.code === 'storage/unauthorized') {
-          throw new DataError("This login isn't allowed to upload photos.")
-        }
-        throw new DataError("That photo couldn't be uploaded. Check your connection and try again.")
+        throw new DataError(err?.message || "That photo couldn't be prepared.")
       }
+
+      const bytes = async (blob) => Bytes.fromUint8Array(new Uint8Array(await blob.arrayBuffer()))
+      return guard(async () => {
+        const target = doc(collection(fb().db, 'photos'))
+        await setDoc(target, {
+          full: await bytes(blobs.full),
+          thumb: await bytes(blobs.thumb),
+          contentType: 'image/jpeg',
+          width: blobs.width,
+          height: blobs.height,
+          createdAt: serverTimestamp(),
+        })
+        return { url: photoUrl(target.id) }
+      })
+    },
+  },
+
+  /**
+   * Getting saved changes onto the website. The timing (wait for a pause, go
+   * now when the page is left, show progress) lives in PublishContext.
+   */
+  publish: {
+    /** Fetch a fresh ID token now, so leaving the page can publish at once. */
+    async warm() {
+      const user = fb().auth.currentUser
+      if (user) warmToken = await user.getIdToken()
+    },
+
+    /**
+     * Ask for a rebuild. `keepalive` lets the request outlive the page.
+     * @returns {Promise<{ requestedAt: string }>} server time of the request
+     */
+    async request({ keepalive = false } = {}) {
+      const user = fb().auth.currentUser
+      if (!user) throw new PublishError('unauthenticated', 'Sign in again to publish.')
+      // When leaving the page there is no time to wait on a token refresh.
+      const token = keepalive && warmToken ? warmToken : await user.getIdToken()
+      let res
+      try {
+        res = await fetch('/api/publish', {
+          method: 'POST',
+          headers: { authorization: `Bearer ${token}` },
+          keepalive,
+        })
+      } catch {
+        throw new PublishError('offline', "Couldn't reach the website. Check your connection.")
+      }
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok || !data.requestedAt) {
+        throw new PublishError(data.code || 'failed', data.message || "Couldn't update the website.")
+      }
+      return { requestedAt: data.requestedAt }
+    },
+
+    /** What the live site was built from: { builtAt, source }, or null. */
+    async liveVersion() {
+      const res = await fetch(`/content-version.json?t=${Date.now()}`, { cache: 'no-store' })
+      return res.ok ? res.json() : null
     },
   },
 

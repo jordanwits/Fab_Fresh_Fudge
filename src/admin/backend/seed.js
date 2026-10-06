@@ -1,21 +1,29 @@
 /**
- * The dashboard's starting content, built from the real catalog in src/data/.
+ * The dashboard's starting content, built from the built-in catalog in
+ * src/data/builtin.js.
  *
- * Shared by both adapters: the local mock seeds localStorage from it, and the
+ * Shared by both adapters (the local mock seeds localStorage from it, and the
  * Firebase adapter imports it into Firestore once, the first time an admin
- * signs in to an empty project.
+ * signs in to an empty project) and by scripts/build-content.mjs, which
+ * publishes it as the site's content when Firebase isn't configured. Plain
+ * ESM with explicit extensions, so Node can import it as well as Vite.
  */
 
-import { BOX_PRICE, FLAVORS, SQUARE_PRICE } from '../../data/flavors.js'
-import { SHIPPING_FEE } from '../../data/checkout.js'
-import { EVENTS, CORPORATE_TIERS } from '../../data/site.js'
+import {
+  BOX_PRICE,
+  CORPORATE_TIERS,
+  EVENTS,
+  FLAVORS,
+  SHIPPING_FEE,
+  SQUARE_PRICE,
+} from '../../data/builtin.js'
 import { randomId } from '../lib/slug.js'
 import { toDateChip } from '../lib/eventDate.js'
 
 /**
  * Photos already committed to public/images/flavors/ -- the "choose from what
  * we already have" half of the image field. Newest reshoot first. The Firebase
- * adapter adds anything uploaded to Storage on top of these.
+ * adapter lists photos uploaded through the dashboard ahead of these.
  */
 export const PHOTO_LIBRARY = [
   ...[

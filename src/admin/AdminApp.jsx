@@ -2,6 +2,7 @@ import { Component } from 'react'
 import { AuthProvider, useAuth } from './state/AuthContext.jsx'
 import { ToastProvider } from './state/ToastContext.jsx'
 import { DataProvider } from './state/DataContext.jsx'
+import { PublishProvider } from './state/PublishContext.jsx'
 import { useRoute } from './lib/router.js'
 import Login from './screens/Login.jsx'
 import Shell from './screens/Shell.jsx'
@@ -78,11 +79,13 @@ function Dashboard() {
   const Screen = SCREENS[route] || FlavorsScreen
 
   return (
-    <DataProvider>
-      <Shell route={route}>
-        <Screen />
-      </Shell>
-    </DataProvider>
+    <PublishProvider>
+      <DataProvider>
+        <Shell route={route}>
+          <Screen />
+        </Shell>
+      </DataProvider>
+    </PublishProvider>
   )
 }
 

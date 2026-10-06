@@ -1,7 +1,9 @@
-// Events are drafted placeholders for the client to swap with their real show
-// schedule. The reviews are real quotes
+// Shows and gift tiers are published from the dashboard (the CONTENT snapshot).
+// The reviews are real quotes
 // the client supplied; they came without names or order details, so the cards
 // carry the quote alone.
+
+import CONTENT from './generated/content.js'
 
 export const REVIEWS = [
   {
@@ -26,57 +28,11 @@ export const REVIEWS = [
   },
 ]
 
-export const EVENTS = [
-  {
-    month: 'Jun',
-    day: '20–21',
-    name: 'Summer Makers Market',
-    place: 'Riverside Fairgrounds',
-    detail: 'Booth 14: first batch of the day sells out by noon.',
-  },
-  {
-    month: 'Jul',
-    day: '4',
-    name: 'Independence Day Street Fair',
-    place: 'Main Street, Downtown',
-    detail: 'Limited-run Star-Spangled S’mores all weekend.',
-  },
-  {
-    month: 'Jul',
-    day: '18–19',
-    name: 'Lakeside Art & Food Festival',
-    place: 'Harbor Park Pavilion',
-    detail: 'Free samples of the new Butterfinger flavor.',
-  },
-  {
-    month: 'Aug',
-    day: '8–10',
-    name: 'County Fair',
-    place: 'Expo Hall, Aisle C',
-    detail: 'The big one: all twenty flavors on the slab.',
-  },
-]
+// Shows and gift tiers are published from the dashboard (see flavors.js).
+export const EVENTS = CONTENT.events
 
-export const CORPORATE_TIERS = [
-  {
-    name: 'The Six-Pack',
-    size: '6 squares · 1.5 lbs',
-    blurb: 'Your pick of flavors in our signature box with a printed card from your team.',
-    price: 'from $42',
-  },
-  {
-    name: 'The Dozen',
-    size: '12 squares · 3 lbs',
-    blurb: 'Two trays, twelve flavors if you want them, with custom ribbon and logo sticker.',
-    price: 'from $78',
-  },
-  {
-    name: 'The Whole Slab',
-    size: '6 lb slab, cut & wrapped',
-    blurb: 'One flavor, one glorious slab, sliced, wrapped, and ready for the break room.',
-    price: 'from $150',
-  },
-]
+
+export const CORPORATE_TIERS = CONTENT.packages
 
 // Harvested from the client's live Square store (their own contact + socials).
 export const CONTACT = {

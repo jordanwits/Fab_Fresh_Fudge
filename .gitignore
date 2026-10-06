@@ -25,3 +25,7 @@ Thumbs.db
 
 # stray backup of a tracked file
 *.bak
+
+# written by scripts/build-content.mjs before every build/dev run
+src/data/generated/
+public/content-version.json

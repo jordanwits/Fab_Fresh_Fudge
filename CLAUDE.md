@@ -13,23 +13,28 @@ in both; this repo keeps the original "corner fudge shop" design.
 ## Commands
 
 - `npm run dev` — Vite dev server (port = `PORT` env or 5173; `.claude/launch.json` config: `fudge-dev`).
-  Public site at `/`, staff dashboard at `/admin/`.
-- `npm run build` — production build to `dist/`
+  Public site at `/`, staff dashboard at `/admin/`. `predev` snapshots Firestore first
+  (see "Publishing" below); restart, or run `node scripts/build-content.mjs --dev`, to see
+  newer dashboard edits on the local public site.
+- `npm run build` — production build to `dist/` (`prebuild` snapshots Firestore first)
 - `npm run preview` — serve the production build
 
 ## Layout
 
 - `index.html` — Google Fonts (Young Serif display, Figtree body), meta
-- `src/App.jsx` — section order: Header → Hero → Shop → Specials → BuildABox → Story → Reviews →
+- `src/App.jsx` — section order: Header → Hero → Shop → BuildABox → Story → Reviews →
   Events → Corporate → Footer, plus a floating BoxPill, the CartDrawer and the OrderPlaced dialog.
   The in-progress box (six flavor ids) lives here; the cart lives in `useCart`
 - `src/components/*.jsx` — one component per section; `src/hooks/useReveal.js` = scroll-reveal
-- `src/data/flavors.js` — 20-flavor catalog (real names/descriptions harvested from the client's
-  Square store) + `SQUARE_PRICE` / `BOX_PRICE` / `BOX_SIZE`
-- `src/data/site.js` — reviews, events, specials, corporate tiers, contact (all drafted placeholders)
+- `src/data/flavors.js` — the PUBLISHED flavor case + `SQUARE_PRICE` / `BOX_PRICE` (from the
+  snapshot, see "Publishing") and the fixed `BOX_SIZE`, `CATEGORIES`, `flavorById`, `stockFirst`
+- `src/data/site.js` — reviews and contact (static) + `EVENTS` / `CORPORATE_TIERS` (published)
+- `src/data/builtin.js` — the original hard-coded catalog, shows, tiers and prices. Seeds the
+  dashboard and is what previews/fresh clones publish; the live site does NOT read it
+- `scripts/build-content.mjs` + `src/data/generated/content.js` (gitignored) — see "Publishing"
 - Cart & checkout (added 2026-09-16; README "Cart & checkout" has the setup steps):
-  - `src/data/checkout.js` — `SHIPPING_FEE` (placeholder $12), Oct–Apr `SHIPPING_SEASON`,
-    `checkoutSeason()`, quantity limits
+  - `src/data/checkout.js` — `SHIPPING_FEE` (published, $12 placeholder), Nov–Apr
+    `SHIPPING_SEASON`, `checkoutSeason()`, quantity limits
   - `src/lib/cart.js` — pure cart rules (line keys, totals in cents, `parseLines`, `findProblems`).
     Imported by BOTH the browser and the server, so displayed and charged totals can't drift
   - `src/hooks/useCart.js` — cart state, persisted to localStorage `fff-cart/v1`, synced across tabs
@@ -51,12 +56,14 @@ in both; this repo keeps the original "corner fudge shop" design.
     The contract is documented there. It picks `firebaseAdapter` when
     `VITE_FIREBASE_API_KEY` is set, else `localAdapter`
   - `backend/firebaseAdapter.js` — the real backend (2026-10-06): Firebase Auth +
-    Firestore (+ Storage once on Blaze). Its header documents the collection layout
+    Firestore, free plan, photos stored IN Firestore. Header documents the layout
   - `backend/localAdapter.js` — the sample-data demo: localStorage, with deliberate
     latency so loading/error states are real code paths. Still used by Vercel previews
     and any checkout without Firebase env vars
-  - `backend/seed.js` — starting content built from `src/data/`, shared by both adapters
-  - `state/` — AuthContext (session gate), DataContext (all CRUD), ToastContext
+  - `backend/seed.js` — starting content built from `src/data/builtin.js`, shared by both
+    adapters and by the build script's no-Firebase fallback
+  - `state/` — AuthContext (session gate), DataContext (all CRUD), PublishContext (when to
+    rebuild the site), ToastContext
   - `ui/` — the shared vocabulary: Button, Field, Dialog (native `<dialog>`), Drawer,
     ConfirmDialog, Toaster, Icon (one hand-rolled SVG set), States (empty/error/skeleton)
   - `lib/` — `useDragSort` (reorder-by-drag, no library), `eventDate`, `slug`, `image`,
@@ -125,18 +132,16 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   flavor. Unused until the client confirms whether it's a new flavor.
 - The `img: null` path in Shop/BuildABox still renders a styled "fresh off the slab" tile, but no
   flavor uses it now (Butterfinger got a photo in the reshoot).
-- Stock is the `soldOut: true` flag in `flavors.js` (set 2026-08-10 from the client's in-stock list —
-  the 10 flavors in `flavors/FlavorImages/`). Sold-out flavors stay visible but greyed and
-  unselectable, sorted to the end via `stockFirst()`; `addToBox` in App.jsx rejects them as a backstop.
-  Side effect: the "Coffee & caramel" filter is currently 4-for-4 sold out.
+- Stock is each flavor's `soldOut` flag, toggled in the dashboard (seeded 2026-08-10 from the
+  client's in-stock list). Sold-out flavors stay visible but greyed and unselectable, sorted to
+  the end via `stockFirst()`; `addToBox` in App.jsx rejects them as a backstop.
 - The live client site is client-rendered Square Online — curl gets no page content; product data comes
   from `sitemap.xml` + per-product `og:` meta (how `research/` was collected).
 - Reviews, events, specials, corporate tiers, Our Story copy, and contact details are
   placeholders awaiting client confirmation. PRICES ARE NOT: the client confirmed them 2026-09-28 —
   $7 per approximately-quarter-pound square, buy five get the sixth free, so `BOX_PRICE` is $35 and
-  the box saves exactly one square. The Specials band still advertises a made-up "buy three get a
-  fourth free / FABFOUR" deal that now contradicts the real offer, and `CORPORATE_TIERS` still says
-  "from $42" for a six-pack; both need the client's real wording.
+  the box saves exactly one square. The gift tiers still say "from $42" for a six-pack; the
+  client can fix that herself on the dashboard's Corporate Gifts screen.
 - Shipping season is NOVEMBER 1 - April 30 (client, 2026-09-28; their Square store's own policy said
   Oct-April). They CAN ship in summer but have to add ice packs and charge more, so May-Oct orders
   go through the quote form (cart's closed-season panel, plus a footer link that only appears
@@ -148,8 +153,47 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
 - Git repo on `main`, pushed to https://github.com/jordanwits/Fab_Fresh_Fudge — a PUBLIC repo, so
   anything committed (including the admin demo credentials) is world-readable. `.gitignore` keeps
   `node_modules/`, `dist/`, and the 51 MB `originals/` tree out of version control.
-- `dist/` is a fresh 2026-09-16 build; both entries (`dist/index.html` and
-  `dist/admin/index.html`) come out of one `npm run build`.
+- Both entries (`dist/index.html` and `dist/admin/index.html`) come out of one `npm run build`.
+
+### Publishing (how dashboard edits reach the site) — built 2026-10-06
+
+- The site is a SNAPSHOT. `scripts/build-content.mjs` (the `prebuild`/`predev` script) reads
+  flavors, shows, packages and pricing from Firestore over public REST and writes
+  `src/data/generated/content.js` + `public/content-version.json` (both gitignored).
+  `flavors.js`/`site.js`/`checkout.js` export from it, and so does the checkout function,
+  through `src/lib/cart.js`. Vercel's log order is install → `npm run build` → bundle
+  functions (checked 2026-10-06), so page and charge come from ONE snapshot. If the file
+  were ever missing at function-bundle time the import fails the deploy, loudly.
+- No `VITE_FIREBASE_PROJECT_ID` (previews, fresh clone) or no `settings/pricing` yet →
+  it publishes the built-in content (`seed.js`). A PRODUCTION build (`VERCEL_ENV=production`)
+  that can't read Firestore exits 1, so the last good deploy stays live. It must only use
+  PUBLIC-read docs: `settings/meta` is admin-only, and checking it 403'd every build.
+- Saving in the dashboard → `PublishContext` waits for a 30 s pause in saves (or the page
+  being hidden/closed, via a keepalive fetch; a localStorage flag retries on the next visit)
+  → `POST /api/publish` with her ID token → `server/publish.js` proves she's an admin by
+  reading `admins/{uid}` through Firestore REST WITH that token (Firestore verifies it; no
+  service account) → hits `DEPLOY_HOOK_URL` (secret, Production only). The sidebar (and a
+  pill in the phone top bar) shows Changes saved → Updating the website… → Website is up to
+  date, the last by polling `/content-version.json` until `builtAt` passes the request time.
+  Hobby allows 100 deployments/day; the 30 s batching keeps it far below that.
+- Without `DEPLOY_HOOK_URL` (local dev) `/api/publish` answers 503 `not_configured` and the
+  sidebar says "Publishing is off here". Keep it out of `.env.local`: dev uses the REAL
+  Firestore, so local edits are real edits, but they shouldn't rebuild the live site.
+- Stale tabs: the drawer sends `expectedTotal`; if the server's total differs (prices
+  republished since the page loaded) checkout answers 409 `prices_changed` and the drawer
+  offers "Refresh prices". Stock changes were already caught by `findProblems`.
+- Shows: the snapshot is date-sorted; `Events.jsx` hides shows whose last day is before
+  today on LA time at render (the site only rebuilds on save), renders each show's own
+  `tag`, and has an empty state.
+- Photos (free plan, no Cloud Storage): uploads are squeezed in the browser
+  (`lib/image.js` photoBlobs: full JPEG ≤ 800 KB stepping 1400px q0.8 down, plus a 360px
+  thumb) and stored as bytes in `photos/{id}`. A flavor's `img` is `/api/photo?id=…`;
+  `server/photo.js` reads the doc over REST and answers with `s-maxage` a year, so Vercel's
+  CDN serves repeat views and Firestore's free download allowance isn't spent per visitor.
+  Works in the dashboard the moment the upload finishes, before any publish. The library
+  lists uploads (REST `runQuery` projection, no bytes) ahead of the committed photos.
+  Unused uploads older than a day are deleted on sign-in (`sweepPhotos`) — never sooner,
+  because a replaced photo stays on the live site until the next publish lands.
 
 ### Checkout gotchas
 
@@ -163,8 +207,9 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   receipt printers).
 - No sales tax is added anywhere. If the client needs tax, add it to the order in
   `buildPaymentLinkRequest`, and the drawer's totals will need the same number.
-- The admin dashboard's stock/flavor edits live in Firestore and reach nothing else; checkout reads
-  the static `flavors.js` bundled at deploy time. Connecting the site must also feed the server.
+- Checkout prices and stock come from the published snapshot bundled into the function, the same
+  one the page was built from (see "Publishing"). A dashboard edit changes checkout only once
+  its publish has deployed.
 - Season is decided on `America/Los_Angeles` time. The browser evaluates it at BUILD time for
   `VITE_CHECKOUT_SEASON`, the function at request time, so changing that variable needs a redeploy.
   In September you must set it to `open` to test checkout at all.
@@ -202,8 +247,9 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   the `VITE_FIREBASE_*` vars (`.env.example`) — public by design. Locally they live in
   `.env.local`; Vercel Production needs the same six; Preview deliberately has none, so
   previews run the sample-data demo and can't touch real data.
-- SECURITY IS `firestore.rules` (and `storage.rules`), published in the console — the
-  adapter's checks are courtesy only. Public read on flavors/events/packages/pricing;
+- SECURITY IS `firestore.rules`, published in the console (current version 2026-10-06
+  1:14 PM, adds `photos`) — the adapter's checks are courtesy only. Public read on
+  flavors/events/packages/pricing/photos;
   writes only for uids with a doc in `admins/{uid}` (`{ email, name }`), which only the
   console can write. Verified 2026-10-06 with anonymous REST calls (read 200, every write
   403). Edit the repo file first, then paste it into Firestore -> Rules and Publish; the
@@ -212,7 +258,7 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   `admins/{uid}` doc. Self sign-up is OFF in Auth settings (User actions), and the
   dashboard has no sign-up or forgot-password flow — Jordan's call: it's an internal tool.
   A login missing from `admins/` is signed straight back out ("doesn't have access").
-  As of 2026-10-06 only Jordan's login exists; the client's is pending her password choice.
+  Logins (2026-10-06): Jordan, and the client's `fabfreshfudge@gmail.com` ("Ragle Family").
 - First admin sign-in IMPORTS `seed.js` into Firestore once, inside a transaction keyed on
   `settings/meta` — the marker, not an empty collection, decides, so deleting every
   flavor on purpose doesn't bring them back. Done 2026-10-06.
@@ -225,10 +271,11 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   behind `backend.isMock`. The adapter choice is a bare `import.meta.env` test so Rollup
   drops the unused adapter — a Firebase build does NOT contain these credentials (checked
   by grepping `dist/`). The demo's edits live in localStorage `fff-admin/v1`.
-- The public site still reads its static `src/data/` modules, not Firestore.
-  `backend.feedsSite` is false, which shows "Not on the website yet" in the sidebar and
-  on the Pricing screen. Connecting them is the open "publish on save vs live reads"
-  decision.
+- `backend.feedsSite` is true for Firebase (the site is rebuilt from it); the sample-data
+  demo keeps its "saved in this browser only" notices.
+- `FlavorEditor`'s `set()` uses a functional state update. It used to build from the
+  render's `values`, and an upload's back-to-back `img` then `focal` writes dropped the
+  photo — uploads never attached, in the demo too, until 2026-10-06.
 - A flavor's `id` is write-once: generated from the name on create, locked afterwards.
   It is surfaced as "Reference ID", NOT as a web address — the site is one page with
   anchor nav, so no per-flavor URL exists and calling it one misleads.
@@ -284,13 +331,9 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
 - Overlay scroll-lock is reference-counted in `ui/Dialog.jsx`. It has to be: the delete
   confirm opens on top of the editor drawer, and per-instance save/restore stranded
   `<html>` at `overflow: hidden` with no dialog open, depending on teardown order.
-- Uploaded photos are downscaled in-browser (`lib/image.js`): to a 1400px JPEG Blob for
-  Firebase Storage (matching the shipped photos; camera files are ~4x what the site can
-  show), or to a 1000px data URL for the demo's ~5 MB localStorage. Storage needs the Blaze
-  plan, so `VITE_FIREBASE_STORAGE_BUCKET` stays BLANK until it's on; while blank, upload
-  says "not switched on yet" immediately instead of retrying against a missing bucket.
-  Turning it on: Blaze, create the bucket in `us-west1` (free-tier region), publish
-  `storage.rules` (allow its Firestore access), set the bucket var locally and on Vercel.
+- Uploaded photos: see "Publishing" (stored in Firestore). The demo instead keeps a 1000px
+  data URL in its ~5 MB localStorage. If the client ever moves to Blaze, Cloud Storage
+  would be the conventional home, but nothing needs it at ~30 flavors.
 - The Corporate Gifts screen (added 2026-09-08) edits `CORPORATE_TIERS` — the gift
   package ladder in `src/components/Corporate.jsx`. Records are
   `{ id, name, size, blurb, price }`; `size` and `price` stay FREE TEXT ("from $42")
@@ -306,9 +349,7 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
 - Shows are deliberately NOT drag-reorderable (asked and confirmed 2026-09-08). They have
   no stored manual order at all: `events.list()` sorts by date on read and DataContext
   re-sorts on create/update. Adding drag would mean introducing a manual order that
-  competes with the date sort — note that `src/components/Events.jsx` renders EVENTS in
-  ARRAY order, so the site's order and the admin's date order are not the same thing
-  today.
+  competes with the date sort; the published snapshot is date-sorted too.
 - `localAdapter.load()` BACKFILLS a stored blob that predates a collection instead of
   discarding it. The shape guard only checks `flavors`/`events`, so a browser holding a
   pre-packages `fff-admin/v1` blob passes it and would then hand the screen an undefined
@@ -317,13 +358,9 @@ store ships from), Redding Mall `L9NRMTK7SGZAH`.
   call a perfectly good record missing.
 - The Pricing screen (added 2026-09-28) edits `{ squarePrice, boxPrice, shippingFee }` —
   plain dollars, matching `SQUARE_PRICE`/`BOX_PRICE` in `flavors.js` and `SHIPPING_FEE` in
-  `checkout.js`. It saves to Firestore but says on screen (while `!backend.feedsSite`) that the site and
-  `server/checkout.js` still read the constants compiled into `src/data/`, so saving here
-  changes no price a customer pays. Finishing it means three things landing together —
-  `cart.js` taking prices as input, the checkout function reading the same stored record at
-  request time, and security rules plus server-side `validatePricing` on writes. The seam
-  doc at the top of `backend/adapter.js` spells it out under "PRICING, WHEN THE BACKEND IS
-  REAL".
+  `checkout.js`. LIVE since 2026-10-06: a save is published like any other edit and then
+  drives both the page and the charge. Rules shape-check it, `validatePricing` runs again in
+  the build, and a page left open across a change is stopped at checkout (`expectedTotal`).
 - Prices are deliberately GLOBAL, not per-flavor: every square sells for the same price,
   and a mixed six-pack would need a pricing rule (flat? cheapest free? sum minus one?) that
   nobody has decided. Don't add a per-flavor price field without settling that first.

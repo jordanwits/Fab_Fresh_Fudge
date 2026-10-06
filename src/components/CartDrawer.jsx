@@ -147,7 +147,7 @@ export default function CartDrawer({ open, onClose, cart, season, onRequestQuote
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ lines }),
+        body: JSON.stringify({ lines, expectedTotal: total }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok && data.url) {
@@ -158,7 +158,13 @@ export default function CartDrawer({ open, onClose, cart, season, onRequestQuote
       if (data.code === 'cart_problem' && Array.isArray(data.problems)) {
         setServerProblems(data.problems)
       }
-      setStatus({ state: 'error', message: data.message || OFFLINE })
+      setStatus({
+        state: 'error',
+        message: data.message || OFFLINE,
+        // The cart lives in localStorage, so a reload keeps it and shows the
+        // prices the server just checked against.
+        reload: data.code === 'prices_changed',
+      })
     } catch {
       setStatus({ state: 'error', message: OFFLINE })
     }
@@ -238,6 +244,18 @@ export default function CartDrawer({ open, onClose, cart, season, onRequestQuote
                   {(status.state === 'error' || cartWideProblem) && (
                     <p className="cart-alert" role="alert">
                       {status.state === 'error' ? status.message : cartWideProblem.message}
+                      {status.reload ? (
+                        <>
+                          {' '}
+                          <button
+                            type="button"
+                            className="cart-alert-action"
+                            onClick={() => window.location.reload()}
+                          >
+                            Refresh prices
+                          </button>
+                        </>
+                      ) : null}
                     </p>
                   )}
                   <button

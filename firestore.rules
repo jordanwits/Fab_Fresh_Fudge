@@ -8,8 +8,8 @@ rules_version = '2';
 //
 // THIS IS THE SECURITY. The dashboard's own checks run in the browser and can
 // be bypassed; these cannot.
-//   - Anyone may READ flavors, events, packages and pricing: the public site
-//     will, and none of it is private.
+//   - Anyone may READ flavors, events, packages, pricing and photos: the
+//     public site does, and none of it is private.
 //   - Only signed-in users whose uid has a document in admins/ may WRITE.
 //     Being signed in is not enough on its own.
 //   - admins/ can only be edited from the Firebase console.
@@ -57,6 +57,24 @@ service cloud.firestore {
     match /packages/{id} {
       allow read: if true;
       allow create, update: if isAdmin() && hasName();
+      allow delete: if isAdmin();
+    }
+
+    // Uploaded flavor photos, stored as bytes because the free plan has no
+    // Cloud Storage (served by /api/photo). Never edited: a new photo is a new
+    // doc. The dashboard squeezes the full JPEG under 800 KB; these caps only
+    // stop abuse, and Firestore's own 1 MiB record limit sits above them.
+    match /photos/{id} {
+      allow read: if true;
+      allow create: if isAdmin()
+        && id.matches('^[A-Za-z0-9_-]{8,64}$')
+        && request.resource.data.keys().hasOnly(['full', 'thumb', 'contentType', 'width', 'height', 'createdAt'])
+        && request.resource.data.full is bytes
+        && request.resource.data.full.size() <= 900 * 1024
+        && request.resource.data.thumb is bytes
+        && request.resource.data.thumb.size() <= 120 * 1024
+        && request.resource.data.contentType == 'image/jpeg'
+        && request.resource.data.createdAt == request.time;
       allow delete: if isAdmin();
     }
 

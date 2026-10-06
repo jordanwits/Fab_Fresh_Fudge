@@ -68,6 +68,7 @@
   --a-amber-line: oklch(0.87 0.07 78);
   --a-amber-ink: oklch(0.442 0.098 62);
   --a-amber-on-dark: oklch(0.855 0.105 82); /* amber as text on the cocoa rail */
+  --a-green-on-dark: oklch(0.82 0.12 152); /* "website is up to date" on the rail */
 
   --a-green: oklch(0.6 0.13 152);
   --a-green-pale: oklch(0.955 0.038 155);
@@ -1003,6 +1004,30 @@ code {
   color: var(--a-amber-on-dark);
 }
 
+/* Publishing status tones. The base (amber) is the warning tone. */
+.rail__notice--info .rail__notice-title {
+  color: var(--a-sky);
+}
+
+.rail__notice--good .rail__notice-title {
+  color: var(--a-green-on-dark);
+}
+
+.rail__notice--quiet .rail__notice-title {
+  color: var(--a-rail-ink);
+}
+
+.rail__notice-title .is-spinning {
+  display: inline-flex;
+  animation: spin 1.1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rail__notice-title .is-spinning {
+    animation: none;
+  }
+}
+
 .rail__notice-body {
   margin-top: var(--s1);
   font-size: var(--t-xs);
@@ -1143,6 +1168,39 @@ code {
   flex: 1;
   font-size: var(--t-md);
   font-weight: 700;
+}
+
+/* Phones: the publishing status in one word, tapping it opens the menu
+   where the full status and its actions live. */
+.topbar__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 var(--s2);
+  border: 1px solid oklch(1 0 0 / 0.14);
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.06);
+  color: var(--a-rail-ink);
+  font-size: var(--t-xs);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.topbar__status::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--a-amber-on-dark);
+}
+
+.topbar__status--info::before {
+  background: var(--a-sky);
+}
+
+.topbar__status--good::before {
+  background: var(--a-green-on-dark);
 }
 
 .topbar__site {

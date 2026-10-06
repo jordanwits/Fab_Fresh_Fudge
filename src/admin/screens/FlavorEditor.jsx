@@ -86,18 +86,26 @@ export default function FlavorEditor({ open, flavor, allFlavors, onClose, onSave
     [values, initial]
   )
 
+  // Functional update: a photo upload sets `img` and then `focal` back to back,
+  // and building both from the same render's `values` let the second write
+  // drop the first -- the uploaded photo silently never landed.
   const set = (key, next) => {
-    const merged = { ...values, [key]: next }
-    if (key === 'name' && isNew && !idTouched) {
-      merged.id = uniqueSlug(next, takenIds)
-    }
-    setValues(merged)
-    // Once the form has been submitted once, re-check the whole thing on every
-    // keystroke rather than only clearing the edited field's error. Typing a
-    // name also fills the web address, and clearing errors key-by-key left that
-    // derived field showing a complaint it had already satisfied.
-    if (submitted) setErrors(validate(merged, { isNew, takenIds }))
+    setValues((prev) => {
+      const merged = { ...prev, [key]: next }
+      if (key === 'name' && isNew && !idTouched) {
+        merged.id = uniqueSlug(next, takenIds)
+      }
+      return merged
+    })
   }
+
+  // Once the form has been submitted once, re-check the whole thing on every
+  // change rather than only clearing the edited field's error. Typing a name
+  // also fills the web address, and clearing errors key-by-key left that
+  // derived field showing a complaint it had already satisfied.
+  useEffect(() => {
+    if (submitted) setErrors(validate(values, { isNew, takenIds }))
+  }, [values, submitted, isNew, takenIds])
 
 
   // Move focus to the first field that needs fixing. This has to wait for the

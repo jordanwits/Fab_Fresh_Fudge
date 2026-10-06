@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { CATEGORIES, stockFirst } from '../../data/flavors.js'
+import { thumbSrc } from '../lib/photo.js'
 import { useData } from '../state/DataContext.jsx'
 import { useClosing } from '../lib/useClosing.js'
 import { useDragSort } from '../lib/useDragSort.js'
@@ -378,7 +379,7 @@ export default function FlavorsScreen() {
                       {f.img ? (
                         <img
                           className="thumb"
-                          src={f.img}
+                          src={thumbSrc(f.img)}
                           alt=""
                           loading="lazy"
                           width="56"

@@ -8,14 +8,18 @@ import { fileURLToPath } from 'node:url'
  * Dev-only stand-in for the Vercel functions in api/.
  *
  * Mounts the same host-agnostic handlers at the same paths, so `npm run dev`
- * runs the real flows (Square Sandbox checkout, Web3Forms quote requests)
- * without the Vercel CLI. Each handler loads through Vite's SSR loader on
+ * runs the real flows (Square Sandbox checkout, Web3Forms quote requests,
+ * uploaded photos from Firestore) without the Vercel CLI. /api/publish answers
+ * 503 here unless DEPLOY_HOOK_URL is in .env.local -- leave it out, or every
+ * local edit would rebuild the live site. Each handler loads through Vite's SSR loader on
  * every request, so edits to prices or stock in src/data/ apply without a
  * restart, and .env.local is re-read for the same reason.
  */
 const DEV_API = [
   { path: '/api/checkout', module: '/server/checkout.js', handler: 'handleCheckout' },
   { path: '/api/quote', module: '/server/quote.js', handler: 'handleQuote' },
+  { path: '/api/photo', module: '/server/photo.js', handler: 'handlePhoto' },
+  { path: '/api/publish', module: '/server/publish.js', handler: 'handlePublish' },
 ]
 
 function apiDev() {
@@ -34,14 +38,18 @@ function apiDev() {
             const hasBody = req.method !== 'GET' && req.method !== 'HEAD'
             const request = new Request(`http://${req.headers.host}${req.originalUrl}`, {
               method: req.method,
-              headers: { 'content-type': req.headers['content-type'] || '' },
+              headers: {
+                'content-type': req.headers['content-type'] || '',
+                authorization: req.headers.authorization || '',
+              },
               body: hasBody ? Buffer.concat(chunks) : undefined,
             })
 
             const response = await handle(request, env)
             res.statusCode = response.status
             response.headers.forEach((value, name) => res.setHeader(name, value))
-            res.end(await response.text())
+            // Bytes, not text: /api/photo answers with a JPEG.
+            res.end(Buffer.from(await response.arrayBuffer()))
           } catch (err) {
             server.config.logger.error(`[api-dev ${route.path}] ${err.stack || err}`)
             res.statusCode = 500
@@ -57,7 +65,8 @@ function apiDev() {
 /**
  * Dev-only endpoint backing src/FocalTool.jsx — remove alongside it.
  *
- * Rewrites the `focal:` line of each flavor in src/data/flavors.js. `apply:
+ * Rewrites the `focal:` line of each flavor in src/data/builtin.js (the
+ * built-in catalog; published flavors set their focal point in the dashboard). `apply:
  * 'serve'` keeps it out of the production build entirely. This project has no
  * git history, so it keeps a .bak of the previous contents on every write.
  */
@@ -97,7 +106,7 @@ function focalBake() {
               })
             }
 
-            const file = path.resolve(__dirname, 'src/data/flavors.js')
+            const file = path.resolve(__dirname, 'src/data/builtin.js')
             const src = fs.readFileSync(file, 'utf8')
             fs.writeFileSync(`${file}.bak`, src, 'utf8')
 
@@ -117,7 +126,7 @@ function focalBake() {
 
             fs.writeFileSync(file, out.join(''), 'utf8')
             send(200, {
-              message: `${updated} updated in flavors.js (previous contents kept as flavors.js.bak)`,
+              message: `${updated} updated in builtin.js (previous contents kept as builtin.js.bak)`,
             })
           } catch (err) {
             send(500, { error: String(err) })

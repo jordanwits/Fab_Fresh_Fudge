@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FLAVORS } from './data/flavors.js'
+import { FLAVORS } from './data/builtin.js'
 
 /**
  * Dev-only framing tool — open the site with `?focal` to use it.

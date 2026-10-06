@@ -54,6 +54,12 @@
  *   upload(file)         -> Promise<{ url }>    url is whatever <img src> needs
  *   library()            -> Promise<string[]>   already-available image paths
  *
+ * backend.publish                   optional; Firebase only (see PublishContext)
+ *   warm()               -> Promise<void>       fetch a token ahead of time
+ *   request({ keepalive }) -> Promise<{ requestedAt }>  rebuild the site;
+ *                                                throws { code, message }
+ *   liveVersion()        -> Promise<{ builtAt, source }|null>
+ *
  * backend.dev                       optional; the UI hides these when absent
  *   reset()              -> Promise<void>       restore sample data
  *
@@ -118,25 +124,25 @@
  *   Lock it down with RLS: public SELECT, writes restricted to authenticated
  *   users in an `admins` table.
  *
- * FIREBASE — DONE (2026-10-06): `firebaseAdapter.js`, project `fab-fresh-site`.
- *   Its header documents the Firestore layout. Security is firestore.rules /
- *   storage.rules at the repo root: public read, writes only for uids listed
- *   in `admins/{uid}` (an allowlist doc rather than a custom claim, so admins
- *   are managed in the console with no Admin SDK script).
+ * FIREBASE — DONE (2026-10-06): `firebaseAdapter.js`, project `fab-fresh-site`,
+ *   free plan. Its header documents the Firestore layout (photos included --
+ *   no Cloud Storage). Security is firestore.rules at the repo root: public
+ *   read, writes only for uids listed in `admins/{uid}` (an allowlist doc
+ *   rather than a custom claim, so admins are managed in the console with no
+ *   Admin SDK script).
  *
- * PRICING, WHEN THE BACKEND IS REAL
+ * HOW EDITS REACH THE SITE (and why prices can't drift)
  *
- * The pricing screen writes through `backend.pricing`, but the public site and
- * server/checkout.js still import the constants in src/data/. Three things have
- * to happen together, or the site will show one price and charge another:
- *
- *   1. The site reads pricing from the backend instead of the constants —
- *      src/lib/cart.js takes prices as input rather than importing them, and
- *      Shop / BuildABox / CartDrawer read them from context.
- *   2. server/checkout.js reads the SAME record at request time, so the charge
- *      is decided server-side from the stored price, never from the browser.
- *   3. Writes to pricing are locked to admins in the security rules, and
- *      re-validated server-side (see src/admin/lib/price.js).
+ * The site is a snapshot. scripts/build-content.mjs runs before every build,
+ * reads Firestore and writes src/data/generated/content.js, which
+ * src/data/{flavors,site,checkout}.js export. The checkout function imports
+ * those same modules (via src/lib/cart.js), and Vercel runs the build command
+ * before bundling functions, so the price on the page and the price charged
+ * come from one snapshot. Saving in the dashboard triggers a rebuild through
+ * /api/publish (state/PublishContext.jsx decides when). Pricing writes are
+ * admin-only and shape-checked in the rules, and validatePricing runs again
+ * in the build; a page left open across a price change is caught at checkout
+ * by the drawer's expectedTotal (409 prices_changed).
  *
  * EITHER WAY, READ THIS: the mock adapter's sign-in is a UI stub, not security.
  * It compares strings in the browser, so anyone can read the credentials in the

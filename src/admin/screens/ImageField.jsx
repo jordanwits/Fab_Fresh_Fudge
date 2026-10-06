@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { backend } from '../backend/adapter.js'
+import { photoIdFrom, thumbSrc } from '../lib/photo.js'
 import Icon from '../ui/Icon.jsx'
 import Button from '../ui/Button.jsx'
 
@@ -242,9 +243,11 @@ export default function ImageField({ value, focal, onChange, onFocalChange, alt 
                       setLibraryOpen(false)
                     }}
                     aria-pressed={selected}
-                    title={decodeURIComponent(src.split('/').pop())}
+                    title={
+                      photoIdFrom(src) ? 'Uploaded photo' : decodeURIComponent(src.split('/').pop())
+                    }
                   >
-                    <img src={src} alt="" loading="lazy" width="160" height="120" />
+                    <img src={thumbSrc(src)} alt="" loading="lazy" width="160" height="120" />
                     {selected ? (
                       <span className="library__check" aria-hidden="true">
                         <Icon name="check" size={14} strokeWidth={2.5} />
